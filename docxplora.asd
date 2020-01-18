@@ -1,0 +1,15 @@
+;;;; docxplora.asd
+
+(asdf:defsystem #:docxplora
+  :description "Primitive DOCX footling"
+  :author "John Q. Splittist <splittist@splittist.com>"
+  :license  "MIT"
+  :version "0.0.1"
+  :serial t
+  :depends-on (#:alexandria #:zip #:flexi-streams #:plump)
+  :components ((:file "package")
+	       (:file "opc-content-types")
+	       (:file "opc-relationship-types")
+	       (:file "opc-namespaces")
+               (:file "opc")
+               (:file "docxplora")))
