@@ -37,7 +37,7 @@ Saves `package` to `pathname`, or, if `pathname` is not supplied, the `PACKAGE-P
 
 The pathname associated with the package, if any.
 
-*class* **OPC-XML-PART**
+*class* **OPC-PART**
 
 Represents an opc part within an opc package.
 
@@ -152,6 +152,20 @@ Returns the relationship type represented by the short string `name`.
 *function* **NS** `name`
 
 Returns the namespace represented by the short string `name`.
+
+# XML
+
+*class* **OPC-XML-PART**
+
+Represents a part in a package with native xml content.
+
+*function* **ROOT** `opc-xml-part`
+
+The **PLUMP:ROOT** of the xml content of the part, if any.
+
+*function* **FLUSH-PART** `part`
+
+Called on each `part` when the enclosing opc package is being flushed, usually prior to saving. An `OPC-XML-PART` will serialize its xml to octets in its `CONTENT`.
 
 ## License
 
