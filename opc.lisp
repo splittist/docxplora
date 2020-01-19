@@ -251,7 +251,7 @@
 	""))) ;; or nil?
 
 (defun uri-merge (source target)
-  (namestring (merge-pathnames target source)))
+  (namestring (merge-pathnames target source))) ;; FIXME deal with '/../' :UP
 
 (defun uri-relative (source target)
   (enough-namestring target source))
@@ -340,7 +340,9 @@
 (defun flush-package (package)
   (generate-part-rels package)
   (generate-package-rels package)
-  (generate-content_types package))
+  (generate-content_types package)
+  (dolist (part (user-parts package))
+    (flush-part part)))
 
 (defun generate-part-rels (package)
   (let ((user-parts (user-parts package)))
@@ -394,4 +396,4 @@
     nil)
   (:method ((part opc-xml-part))
     (setf (content part)
-	  (flexi-streams:string-to-octets (plump:serialize (root part) nil)))))
+	  (flexi-streams:string-to-octets (plump:serialize (xml-root part) nil)))))

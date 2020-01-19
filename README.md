@@ -159,7 +159,7 @@ Returns the namespace represented by the short string `name`.
 
 Represents a part in a package with native xml content.
 
-*function* **ROOT** `opc-xml-part`
+*function* **XML-ROOT** `opc-xml-part`
 
 The **PLUMP:ROOT** of the xml content of the part, if any.
 

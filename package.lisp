@@ -24,7 +24,8 @@
    #:create-relationship
    #:delete-relationship
    #:get-relationships
-   #:get-relatiohships-by-type
+   #:get-relationship
+   #:get-relationships-by-type
    #:source-uri
    #:target-uri
    #:target-mode
@@ -38,7 +39,10 @@
    #:flush-part
    #:ct
    #:ns
-   #:rt))
+   #:rt
+   #:opc-xml-part
+   #:xml-root
+   #:flush-part))
 
 (defpackage #:docxplora
   (:use #:cl))
