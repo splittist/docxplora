@@ -1,0 +1,9 @@
+*.fasl
+*.*~
+*.docx
+*.xlsx
+*.pptx
+*.swpc
+\#*\#
+*.py
+*.xml
