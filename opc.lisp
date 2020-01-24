@@ -86,7 +86,7 @@
 		   :overrides (make-hash-table :test 'equal))))
 
 (defun ct-part->ctm (ct-part)
-  (let ((root (plump:parse (flexi-streams:octets-to-string (content ct-part)) :external-format :utf8))
+  (let ((root (plump:parse (flexi-streams:octets-to-string (content ct-part) :external-format :utf8)))
 	(defaults (make-hash-table :test 'equal))
 	(overrides (make-hash-table :test 'equal)))
     (loop for default in (plump:get-elements-by-tag-name root "Default")
