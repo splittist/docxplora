@@ -86,7 +86,7 @@
 		   :overrides (make-hash-table :test 'equal))))
 
 (defun ct-part->ctm (ct-part)
-  (let ((root (plump:parse (flexi-streams:octets-to-string (content ct-part))))
+  (let ((root (plump:parse (flexi-streams:octets-to-string (content ct-part)) :external-format :utf8))
 	(defaults (make-hash-table :test 'equal))
 	(overrides (make-hash-table :test 'equal)))
     (loop for default in (plump:get-elements-by-tag-name root "Default")
@@ -133,7 +133,7 @@
 
 (defun rels-part->rels (rels-part)
   (let ((source (uri-rels-source (part-name rels-part)))
-	(root (plump:parse (flexi-streams:octets-to-string (content rels-part))))
+	(root (plump:parse (flexi-streams:octets-to-string (content rels-part) :external-format :utf8)))
 	(rels (make-hash-table :test 'equal)))
     (loop for rel in (plump:get-elements-by-tag-name root "Relationship")
        do (setf (gethash (plump:attribute rel "Id") rels)
@@ -384,7 +384,7 @@
 	     (package-parts package))))
 
 (defun xml-octets (xml)
-  (flexi-streams:string-to-octets (plump:serialize xml nil)))
+  (flexi-streams:string-to-octets (plump:serialize xml nil) :external-format :utf8))
 
 (defclass xml-root-mixin ()
   ((%xml-root :initarg :xml-root :accessor xml-root)))
@@ -396,4 +396,6 @@
     nil)
   (:method ((part opc-xml-part))
     (setf (content part)
-	  (flexi-streams:string-to-octets (plump:serialize (xml-root part) nil)))))
+	  (flexi-streams:string-to-octets
+	   (plump:serialize (xml-root part) nil)
+	   :external-format :utf8))))

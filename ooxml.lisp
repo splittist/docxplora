@@ -11,7 +11,7 @@
   (when (eql 'opc:opc-part (type-of part))
     (change-class part 'opc:opc-xml-part)
     (setf (opc:xml-root part)
-	  (plump:parse (flexi-streams:octets-to-string (opc:content part))))))
+	  (plump:parse (flexi-streams:octets-to-string (opc:content part) :external-format :utf8)))))
 
 (defun main-document (document)
   (let* ((package (opc-package document))
