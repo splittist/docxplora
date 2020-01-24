@@ -45,4 +45,20 @@
    #:flush-part))
 
 (defpackage #:docxplora
-  (:use #:cl))
+  (:use #:cl)
+  (:export
+   #:document
+   #:opc-package
+   #:open-document
+   #:main-document
+   #:comments
+   #:document-settings
+   #:endnotes
+   #:footnotes
+   #:font-table
+   #:glossary-document
+   #:numbering-definitions
+   #:style-definitions
+   #:web-settings
+   #:headers
+   #:footers))
