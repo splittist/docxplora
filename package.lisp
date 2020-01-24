@@ -50,6 +50,7 @@
    #:document
    #:opc-package
    #:open-document
+   #:get-part-by-name
    #:main-document
    #:comments
    #:document-settings

@@ -11,27 +11,31 @@
   (when (eql 'opc:opc-part (type-of part))
     (change-class part 'opc:opc-xml-part)
     (setf (opc:xml-root part)
-	  (plump:parse (flexi-streams:octets-to-string (opc:content part) :external-format :utf8)))))
+	  (plump:parse (flexi-streams:octets-to-string (opc:content part) :external-format :utf8))))
+  part)
 
+(defgeneric get-part-by-name (document name &optional ensure-xml)
+  (:method ((document document) (name string) &optional ensure-xml)
+    (let* ((package (opc-package document))
+	   (part (opc:get-part package name)))
+      (if ensure-xml
+	  (ensure-xml part)
+	  part))))
+    
 (defun main-document (document)
   (let* ((package (opc-package document))
 	 (rel (first (opc:get-relationships-by-type package (opc:rt "OFFICE_DOCUMENT"))))
-	 (target (opc:uri-merge "/" (opc:target-uri rel)))
-	 (mdp (opc:get-part package target)))
-    (ensure-xml mdp)
-    mdp))
+	 (target (opc:uri-merge "/" (opc:target-uri rel))))
+    (get-part-by-name document target t)))
 
 ;;; FIXME can also be target of glossary-document
 
 (defun md-target (document rt)
-  (let* ((package (opc-package document))
-	 (main-document (main-document document))
+  (let* ((main-document (main-document document))
 	 (rel (first (opc:get-relationships-by-type main-document rt))))
     (when rel
-      (let* ((target (opc:uri-merge (opc:part-name main-document) (opc:target-uri rel)))
-	     (part (opc:get-part package target)))
-	(ensure-xml part)
-	part))))
+      (let((target (opc:uri-merge (opc:part-name main-document) (opc:target-uri rel))))
+	(get-part-by-name document target t)))))
 
 (defun comments (document)
   (md-target document (opc:rt "COMMENTS")))
@@ -69,10 +73,8 @@
 		(let* ((rel (opc:get-relationship mdp id))
 		       (target-uri (opc:target-uri rel))
 		       (source-uri (opc:source-uri rel))
-		       (abs-uri (opc:uri-merge source-uri target-uri))
-		       (part (opc:get-part (opc-package document) abs-uri)))
-		  (ensure-xml part)
-		  part))
+		       (abs-uri (opc:uri-merge source-uri target-uri)))
+		  (get-part-by-name document abs-uri t)))
 	    ids)))
 
 (defun headers (document)
