@@ -6,7 +6,7 @@
   :license  "MIT"
   :version "0.0.1"
   :serial t
-  :depends-on (#:alexandria #:zip #:flexi-streams #:plump)
+  :depends-on (#:alexandria #:zip #:flexi-streams #:plump #:lquery)
   :components ((:file "package")
 	       (:file "opc-content-types")
 	       (:file "opc-relationship-types")
