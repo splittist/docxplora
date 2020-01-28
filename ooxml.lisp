@@ -95,94 +95,37 @@
 
 ;; XSL Transformation ditto @ w:saveThroughXslt via r:id with .../transform
 
+;;; styles
 
-(defun find-child (parent child-tag-name)
+(defgeneric add-style (target style)
+  (:method ((document document) (style plump-dom:element))
+    (unless (equal "w:style" (plump:tag-name style))
+      (error "Need a \"w:style\" element to add to document; got ~A" style))
+    (let ((styles (first (plump:get-elements-by-tag-name (opc:xml-root (style-definitions document)) "w:styles"))))
+      (plump:append-child styles style))))
+
+
+;;; utils
+
+(defun find-child/tag (parent child-tag-name)
   (find child-tag-name (plump:children parent) :key #'plump:tag-name :test #'equal))
 
-(defun fix-character-style (run style-name &optional remove-color)
-  (let* ((run-props (or (find-child run "w:rPr")
-			(plump:make-element run "w:rPr")))
-	 (run-style (or (find-child run "w:rStyle")
-			(plump:make-element run-props "w:rStyle"))))
-    (setf (plump:attribute run-style "w:val") style-name)
-    (when remove-color
-      (alexandria:when-let (color (find-child run-props "w:color"))
-	(plump:remove-child color))))
-  run)
+(defun find-children/tag (parent child-tag-name)
+  (remove-if-not (alexandria:curry #'equal child-tag-name)
+		 (coerce (plump:children parent) 'list)
+		 :key #'plump:tag-name))
 
-(lquery:define-lquery-function fix-character-style (run style-name &optional remove-color)
-  (fix-character-style run style-name remove-color))
+(defun ensure-child/tag (parent child-tag-name &optional first)
+  (or (find-child/tag parent child-tag-name)
+      (if (not first)
+	  (plump:make-element parent child-tag-name)
+	  (let* ((root (plump:make-root))
+		 (new-child (plump:make-element root child-tag-name)))
+	    (plump:prepend-child parent new-child)))))
 
-(defun handle-insertions (root)
-  (lquery:with-master-document (root)
-    (lquery:$ "w::p" "w::ins" "w::r"
-	      (fix-character-style "IPCInsertion")
-	      (remove-attr "w:rsidR" "w:rsidRPr")
-	      (unwrap))))
-
-(defun handle-move-tos (root)
-  (lquery:with-master-document (root)
-    (lquery:$ "w::moveTo" "w::r"
-	      (fix-character-style "IPCMoveTo")
-	      (remove-attr "w:rsidR" "w:rsidRPr")
-	      (unwrap))
-    (lquery:$ "w::moveToRangeStart"
-	      (add "w::moveToRangeEnd")
-	      (remove))))
-
-(defun handle-move-froms (root)
-  (lquery:with-master-document (root)
-    (lquery:$ "w::moveFrom" "w::r"
-	      (fix-character-style "IPCMoveFrom")
-	      (remove-attr "w:rsidR" "w:rsidRPr" "w:rsidDel")
-	      (unwrap))
-    (lquery:$ "w::moveFromRangeStart"
-	      (add "w::moveFromRangeEnd")
-	      (remove))))
-
-(defun fix-del-text (run)
-  (loop for child across (plump:children run)
-     when (equal "w:delText" (plump:tag-name child))
-     do (setf (plump:tag-name child) "w:t"))
-  run)
-
-(lquery:define-lquery-function fix-del-text (run)
-  (fix-del-text run))
-
-(defun handle-deletions (root)
-  (lquery:with-master-document (root)
-    (lquery:$ "w::p" "w::del" "w::r"
-	      (fix-character-style "IPCDeletion")
-	      (fix-del-text)
-	      (remove-attr "w:rsidR" "w:rsidRPr" "w:rsidDel")
-	      (unwrap))))
-
-(defun process-document (document)
-  (let ((root (opc:xml-root (main-document document))))
-    (handle-insertions root)
-    (handle-deletions root)
-    (handle-move-tos root)
-    (handle-move-froms root))
-  document)
+(defun remove-child/tag (parent child-tag-name)
+  (alexandria:when-let (child (find-child/tag parent child-tag-name))
+    (plump:remove-child child)))
 
 (defun make-element/attrs (root tag-name &rest attributes)
   (plump:make-element root tag-name :attributes (alexandria:plist-hash-table attributes :test 'equalp)))
-
-(defun make-ipc-style (id name color &key underline strike dstrike)
-  (when (and strike dstrike)
-    (error "Can't have both single and double strikethrough."))
-  (let* ((root (plump:make-root))
-	 (style (make-element/attrs root "w:style" "w:type" "character" "w:customStyle" "1" "w:styleId" id)))
-    (make-element/attrs style "w:name" "w:val" name)
-    (make-element/attrs style "w:basedOn" "w:val" "DefaultParagraphFont")
-    (make-element/attrs style "w:uiPriority" "w:val" "1")
-    (make-element/attrs style "w:qFormat")
-    (let ((run-props (plump:make-element style "w:rPr")))
-      (make-element/attrs run-props "w:color" "w:val" color)
-      (when underline
-	(make-element/attrs run-props "w:u" "w:val" underline))
-      (when strike
-	(plump:make-element run-props "w:strike"))
-      (when dstrike
-	(plump:make-element run-props "w:dstrike")))
-    style))

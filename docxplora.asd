@@ -13,4 +13,6 @@
 	       (:file "opc-namespaces")
                (:file "opc")
 	       (:file "ooxml")
-               (:file "docxplora")))
+               (:file "docxplora")
+
+	       (:file "changes")))

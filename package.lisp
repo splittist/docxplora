@@ -62,4 +62,17 @@
    #:style-definitions
    #:web-settings
    #:headers
-   #:footers))
+   #:footers
+
+   #:add-style
+   
+   #:find-child/tag
+   #:find-children/tag
+   #:ensure-child/tag
+   #:remove-child/tag
+   #:make-element/attrs))
+
+(defpackage #:docxplora.changes
+  (:use #:cl #:docxplora)
+  (:export
+   ))
