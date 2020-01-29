@@ -17,15 +17,17 @@
   (lquery:with-master-document (root)
     (lquery:$ "w::p" "w::ins" "w::r"
 	      (fix-character-style "IPCInsertion")
-	      (remove-attr "w:rsidR" "w:rsidRPr")
-	      (unwrap))))
+	      (remove-attr "w:rsidR" "w:rsidRPr"))
+    (lquery:$ "w::p" "w::ins"
+	      (splice))))
 
 (defun handle-move-tos (root)
   (lquery:with-master-document (root)
     (lquery:$ "w::moveTo" "w::r"
 	      (fix-character-style "IPCMoveTo")
-	      (remove-attr "w:rsidR" "w:rsidRPr")
-	      (unwrap))
+	      (remove-attr "w:rsidR" "w:rsidRPr"))
+    (lquery:$ "w::moveTo"
+	      (splice))
     (lquery:$ "w::moveToRangeStart"
 	      (add "w::moveToRangeEnd")
 	      (remove))))
@@ -34,8 +36,9 @@
   (lquery:with-master-document (root)
     (lquery:$ "w::moveFrom" "w::r"
 	      (fix-character-style "IPCMoveFrom")
-	      (remove-attr "w:rsidR" "w:rsidRPr" "w:rsidDel")
-	      (unwrap))
+	      (remove-attr "w:rsidR" "w:rsidRPr" "w:rsidDel"))
+    (lquery:$ "w::moveFrom"
+	      (splice))
     (lquery:$ "w::moveFromRangeStart"
 	      (add "w::moveFromRangeEnd")
 	      (remove))))
@@ -54,9 +57,24 @@
     (lquery:$ "w::p" "w::del" "w::r"
 	      (fix-character-style "IPCDeletion")
 	      (fix-del-text)
-	      (remove-attr "w:rsidR" "w:rsidRPr" "w:rsidDel")
-	      (unwrap))))
+	      (remove-attr "w:rsidR" "w:rsidRPr" "w:rsidDel"))
+    (lquery:$ "w::p" "w::del"
+	      (splice))))
 
+;;; FIXME math run insertions and deletions, and math control stuff
+
+(defun handle-deleted-math-characters (root)
+  (lquery:with-master-document (root)
+    (lquery:$ "m::r" "w::del"
+	      (fix-character-style "IPCDeletion")
+	      (splice))))
+		
+(defun handle-inserted-math-characters (root)
+  (lquery:with-master-document (root)
+    (lquery:$ "m::r" "w::ins"
+	      (fix-character-style "IPCInsertion")
+	      (splice))))
+  
 (defun fix-cell-shading (cell fill)
   (let* ((cell-props (ensure-child/tag cell "w:tcPr"))
 	 (cell-shading (ensure-child/tag cell-props "w:shd")))
@@ -122,6 +140,8 @@
 (defun process-part (part)
   (when part
     (let ((root (opc:xml-root part)))
+      (handle-inserted-math-characters root)
+      (handle-deleted-math-characters root)
       (handle-insertions root)
       (handle-deletions root)
       (handle-move-tos root)
@@ -145,11 +165,13 @@
     
 ;;; Styles
 
-(defun accept-styles-changes (root)
-  (lquery:with-master-document (root)
-    (lquery:$ "w::pPrChange"
-	      (add "w::rPrChange")
-	      (remove))))
+(defun accept-styles-changes (style-definitions-part)
+  (when style-definitions-part
+    (let ((root (opc:xml-root style-definitions-part)))
+      (lquery:with-master-document (root)
+	(lquery:$ "w::pPrChange"
+		  (add "w::rPrChange")
+		  (remove))))))
 
 (defun make-ipc-style (id name color fill &key underline strike dstrike)
   (when (and strike dstrike)
@@ -184,7 +206,7 @@
 	(make-ipc-style "IPCMoveTo" "IPC MoveTo" "385623" "C5E0B3")
 	(make-ipc-style "IPCMoveFrom" "IPC MoveFrom" "385623" "C5E0B3" :strike t)))
 
-(defun add-ipc-styles (document &optional (style-list *modern-ipc-styles*))
+(defun add-ipc-styles (document &optional (style-list *modern-ipc-styles*)) ;; FIXME check styles not already there
   (dolist (style style-list)
     (add-style document style)))
 
