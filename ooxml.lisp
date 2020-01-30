@@ -108,9 +108,9 @@
     (let* ((style-definitions
 	    (or (style-definitions document)
 		(make-style-definitions document)))
-	   ((styles (first (plump:get-elements-by-tag-name
-			    (opc:xml-root style-definitions)
-			    "w:styles")))))
+	   (styles (first (plump:get-elements-by-tag-name
+			   (opc:xml-root style-definitions)
+			   "w:styles"))))
       (plump:append-child styles style))))
 
 (defgeneric remove-style (target style)
