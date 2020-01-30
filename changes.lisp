@@ -202,13 +202,17 @@
 
 (defparameter *modern-ipc-styles*
   (list (make-ipc-style "IPCInsertion" "IPC Insertion" "002060" "B4C6E7")
-	(make-ipc-style "IPCDeletion" "IPC Deletion" "C00000" "F7CAAC")
+	(make-ipc-style "IPCDeletion" "IPC Deletion" "C00000" "F7CAAC" :strike t)
 	(make-ipc-style "IPCMoveTo" "IPC MoveTo" "385623" "C5E0B3")
 	(make-ipc-style "IPCMoveFrom" "IPC MoveFrom" "385623" "C5E0B3" :strike t)))
 
-(defun add-ipc-styles (document &optional (style-list *modern-ipc-styles*)) ;; FIXME check styles not already there
+(defun add-ipc-styles (document &optional (style-list *modern-ipc-styles*) replace) ;; FIXME check styles not already there
   (dolist (style style-list)
-    (add-style document style)))
+    (alexandria:if-let (existing-style (find-style-by-id document (plump:attribute style "w:styleId")))
+      (when replace
+	(remove-style document existing-style)
+	(add-style document style))
+      (add-style document style))))
 
 ;;; pretty changes
 

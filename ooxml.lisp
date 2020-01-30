@@ -97,13 +97,42 @@
 
 ;;; styles
 
+(defun make-style-definitions (document) ;; FIXME Not Yet Implemented
+  ;; make-instance; add xml; get right name; add to package; add to relationships, creating if necessary; return part
+  nil)
+  
 (defgeneric add-style (target style)
   (:method ((document document) (style plump-dom:element))
     (unless (equal "w:style" (plump:tag-name style))
       (error "Need a \"w:style\" element to add to document; got ~A" style))
-    (let ((styles (first (plump:get-elements-by-tag-name (opc:xml-root (style-definitions document)) "w:styles"))))
+    (let* ((style-definitions
+	    (or (style-definitions document)
+		(make-style-definitions document)))
+	   ((styles (first (plump:get-elements-by-tag-name
+			    (opc:xml-root style-definitions)
+			    "w:styles")))))
       (plump:append-child styles style))))
 
+(defgeneric remove-style (target style)
+  (:method ((document document) (style-id string))
+    (alexandria:when-let (style-element (find-style-by-id document style-id))
+      (plump:remove-child style-element)))
+  (:method ((document document) (style plump:element))
+    (plump:remove-child style)))
+
+(defgeneric find-style-by-id (target style-id &optional include-latent) ;; FIXME mixes ids and names
+  (:method ((document document) (style-id string) &optional include-latent)
+    (alexandria:when-let ((style-definitions (style-definitions document)))
+      (let ((styles (first (plump:get-elements-by-tag-name
+			    (opc:xml-root style-definitions)
+			    "w:styles"))))
+	(or (find-if (alexandria:curry #'equal style-id)
+		     (plump:get-elements-by-tag-name styles "w:style")
+		     :key (alexandria:rcurry #'plump:attribute "w:styleId"))
+	    (and include-latent
+		 (find-if (alexandria:curry #'equal style-id)
+			  (plump:get-elements-by-tag-name styles "w:lsdException")
+			  :key (alexandria:rcurry #'plump:attribute "w:name"))))))))
 
 ;;; utils
 

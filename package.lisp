@@ -65,6 +65,9 @@
    #:footers
 
    #:add-style
+   #:remove-style
+   #:find-style-by-id
+
    
    #:find-child/tag
    #:find-children/tag
