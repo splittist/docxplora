@@ -2,6 +2,12 @@
 
 (cl:in-package #:docxplora.changes)
 
+(defun handle-deleted-field-codes (root)
+  (lquery:with-master-document (root)
+    (lquery:$ "w::p" ">w::del" ">w::r"
+	      (has "w::fldChar")
+	      (remove))))
+
 (defun fix-character-style (run style-name &optional remove-color)
   (let* ((run-props (ensure-child/tag run "w:rPr" t))
 	 (run-style (ensure-child/tag run-props "w:rStyle")))
@@ -61,7 +67,7 @@
     (lquery:$ "w::p" "w::del"
 	      (splice))))
 
-;;; FIXME math run insertions and deletions, and math control stuff
+;;; FIXME math control stuff ??
 
 (defun handle-deleted-math-characters (root)
   (lquery:with-master-document (root)
@@ -140,6 +146,7 @@
 (defun process-part (part)
   (when part
     (let ((root (opc:xml-root part)))
+      (handle-deleted-field-codes root)
       (handle-inserted-math-characters root)
       (handle-deleted-math-characters root)
       (handle-insertions root)
