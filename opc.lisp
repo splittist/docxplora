@@ -19,6 +19,14 @@
 (defun make-opc-package ()
   (make-instance 'opc-package))
 
+(define-condition opc-error (type-error)
+  ((part :initarg :part :reader part)
+   (path :initarg :path :reader path))
+  (:report (lambda (condition stream)
+	     (format stream "No ~A part found in ~A."
+		     (part condition)
+		     (path condition)))))
+
 (defclass opc-part ()
   ((%package :initarg :package :accessor opc-package)
    (%content :initarg :content :accessor content)
@@ -35,16 +43,21 @@
   (let ((package (make-instance 'opc-package :pathname pathname))
 	(parts (make-hash-table :test 'equal)))
     ;; extract parts
-    (zip:with-zipfile (zip pathname)
-      (zip:do-zipfile-entries (name entry zip)
-	(let* ((name (concatenate 'string "/" name))
-	       (part (make-instance 'opc-part
-				    :package package
-				    :name name
-				    :content (zip:zipfile-entry-contents entry))))
-	  (setf (gethash name parts) part))))
+    (handler-case
+	(zip:with-zipfile (zip pathname)
+	  (zip:do-zipfile-entries (name entry zip)
+	    (let* ((name (concatenate 'string "/" name))
+		   (part (make-instance 'opc-part
+					:package package
+					:name name
+					:content (zip:zipfile-entry-contents entry))))
+	      (setf (gethash name parts) part))))
+      (simple-error (condition)
+	(declare (ignore condition))
+	(error (make-condition 'type-error :expected-type "OPC package" :datum pathname))))
     ;; extract relationships
-    (unless (gethash "/_rels/.rels" parts) (error "No _rels/.rels part found in ~A" pathname))
+    (unless (gethash "/_rels/.rels" parts)
+      (make-condition 'opc-error :part "/_rels/.rels" :path pathname))
     (loop for part being the hash-values of parts
        when (uri-rels-p (part-name part))
        do (let ((source-name (uri-rels-source (part-name part)))
@@ -54,7 +67,8 @@
 		(setf (part-relationships (gethash source-name parts)) rels))))
     ;; extract content-types
     (let ((ct-part (gethash "/[Content_Types].xml" parts)))
-      (unless ct-part (error "No [Content_Types].xml part found in ~A" pathname))
+      (unless ct-part
+	(make-condition 'opc-error :part "[Content_Types]" :path pathname))
       (setf (content-type-map package) (ct-part->ctm ct-part)
 	    (package-parts package) parts))
     ;; set parts' content-types
