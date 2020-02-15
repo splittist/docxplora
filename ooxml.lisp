@@ -28,6 +28,16 @@
 	 (target (opc:uri-merge "/" (opc:target-uri rel))))
     (get-part-by-name document target t)))
 
+(defun document-type (document) ;;FIXME - return actual types
+  (let ((mdp-ct (opc:content-type (main-document document))))
+    (cond ((member mdp-ct *wml-content-types* :test #'string-equal)
+	   :wordprocessing-document)
+	  ((member mdp-ct *sml-content-types* :test #'string-equal)
+	   :spreadsheet-document)
+	  ((member mdp-ct *pml-content-types* :test #'string-equal)
+	   :presentation-document)
+	  (t :opc-package))))
+
 ;;; FIXME can also be target of glossary-document
 
 (defun md-target (document rt)

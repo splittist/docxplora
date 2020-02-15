@@ -42,12 +42,14 @@
    #:rt
    #:opc-xml-part
    #:xml-root
-   #:flush-part))
+   #:flush-part
+   #:write-part))
 
 (defpackage #:docxplora
   (:use #:cl)
   (:export
    #:document
+   #:document-type
    #:opc-package
    #:open-document
    #:get-part-by-name

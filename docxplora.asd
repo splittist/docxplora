@@ -12,6 +12,7 @@
 	       (:file "opc-relationship-types")
 	       (:file "opc-namespaces")
                (:file "opc")
+	       (:file "ooxml-content-types")
 	       (:file "ooxml")
                (:file "docxplora")
 
