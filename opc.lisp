@@ -265,7 +265,8 @@
 	""))) ;; or nil?
 
 (defun uri-merge (source target)
-  (namestring (merge-pathnames target source))) ;; FIXME deal with '/../' :UP
+  (uiop:parse-unix-namestring
+   (namestring (merge-pathnames target source))))
 
 (defun uri-relative (source target)
   (enough-namestring target source))
