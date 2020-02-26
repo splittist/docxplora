@@ -265,8 +265,7 @@
 	""))) ;; or nil?
 
 (defun uri-merge (source target)
-  (uiop:parse-unix-namestring
-   (namestring (merge-pathnames target source))))
+  (namestring (uiop:parse-unix-namestring (merge-pathnames target source))))
 
 (defun uri-relative (source target)
   (enough-namestring target source))

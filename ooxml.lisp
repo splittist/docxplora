@@ -14,6 +14,14 @@
 	  (plump:parse (flexi-streams:octets-to-string (opc:content part) :external-format :utf8))))
   part)
 
+;; (defun make-document ()
+;;   (let* ((package (opc:make-opc-package))
+;; 	 (doc (make-instance 'document :package package))
+;; 	 (md (opc:create-part package "/word/document.xml" (opc:ct "WML_DOCUMENT"))))
+;;     (setf (content md) "")
+;;     (ensure-xml md)
+;;     (opc::make-opc-xml-header (opc:xml-root md))))
+
 (defgeneric get-part-by-name (document name &optional ensure-xml)
   (:method ((document document) (name string) &optional ensure-xml)
     (let* ((package (opc-package document))

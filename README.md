@@ -1,16 +1,26 @@
 # docxplora
 
-### _John Q. Splittist <splittist@splittist.com>_
+This is a project to manipulate docx files, primarily those created by Microsoft Word.
 
-This is a project to manipulate docx files, primarily those created by
-Microsoft Word.
-
+* [Open Packing Convention](#opc)
+  * [Packages, Parts and Relationships](#packages)
+  * [URIs](#uris)
+  * [Content Types, Relationship Types and Namespaces](#content-types)
+  * [XML](#xml)
+* [Open Office XML](#ooxml)
+  * [Documents](#documents)
+  * [Parts](#parts)
+  * [Styles](#styles)
+  * [Utilities](#utilities)
+  
+<a id="opc"></a>
 ## OPC
 
 [Open Packaging Convention](https://en.wikipedia.org/wiki/Open_Packaging_Conventions/) (OPC) is a container-file format used as the base for modern Microsoft Office documents (as well as some non-Microsoft document formats).
 
 OPC files are zipped containers of other files, and include a map between files and content types (analogous to MIME-types) and 'rels' files to provide a level of indirection for relationships between contained files. The container is a **package**, and the files are **part**s. Each **part** has a **content type**, and may have **relationship**s to other **part**s, each **relationship** having an **Id** and a **relationship type**. **Part**s are named by **uri**s, which are path-like strings.
 
+<a id='packages'></a>
 # Packages, Parts and Relationships
 
 *class* **OPC-PACKAGE**
@@ -113,6 +123,7 @@ The target mode (should be "Internal" - indicating an `OPC-PART` in an `OPC-PACK
 
 The relationship type (a string) of the `OPC-RELATIONSHIP` `relationship`.
 
+<a id='uris'></a>
 # URIs
 
 These functions deal only with internal uris, i.e. those indicating `OPC-PART`s within an `OPC-PACKAGE`. Uris are rooted at the package-level with "/", which is sometimes also used to represent the package itself.
@@ -137,6 +148,7 @@ Returns a uri (a string) identifying `target` relative to `source` (both `target
 
 Takes the uri `target` expressed relative to `source` and returns an absolute uri (all uris being strings). `URI-MERGE` and `URI-RELATIVE` are inverses.
 
+<a id='content-types'></a>
 # Content Types, Relationship Types and Namespaces
 
 Because content types, relationship types and namespaces are represented by long strings, convenience functions mapping from shorter strings to the canonical form are provided.
@@ -153,6 +165,7 @@ Returns the relationship type represented by the short string `name`.
 
 Returns the namespace represented by the short string `name`.
 
+<a id='xml'></a>
 # XML
 
 *class* **OPC-XML-PART**
@@ -167,25 +180,69 @@ The **PLUMP:ROOT** of the xml content of the part, if any.
 
 Called on each `part` when the enclosing opc package is being flushed, usually prior to saving. An `OPC-XML-PART` will serialize its xml to octets in its `CONTENT`.
 
-## License
+*function* **WRITE-PART**
 
-Copyright 2018 John Q. Splittist
+<a id='ooxml'></a>
+## Open Office XML
 
-Permission is hereby granted, free of charge, to any person obtaining a copy 
-of this software and associated documentation files (the "Software"), to deal 
-in the Software without restriction, including without limitation the rights 
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-copies of the Software, and to permit persons to whom the Software is furnished 
-to do so, subject to the following conditions:
+<a id='documents'></a>
+# Documents
 
-The above copyright notice and this permission notice shall be included 
-in all copies or substantial portions of the Software.
+*class* **DOCUMENT**
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
-THE SOFTWARE.
+*function* **DOCUMENT-TYPE**
 
+*function* **OPC-PACKAGE**
+
+*function* **OPEN-DOCUMENT**
+
+<a id='parts'></a>
+# Parts
+
+*function* **GET-PART-BY-NAME**
+
+*function* **MAIN-DOCUMENT**
+
+*function* **COMMENTS**
+
+*function* **DOCUMENT-SETTINGS**
+
+*function* **ENDNOTES**
+
+*function* **FOOTNOTES**
+
+*function* **FONT-TABLE**
+
+*function* **GLOSSARY-DOCUMENT**
+
+*function* **NUMBERING-DEFINITIONS**
+
+*function* **STYLE-DEFINITIONS**
+
+*function* **WEB-SETTINGS**
+
+*function* **HEADERS**
+
+*function* **FOOTERS**
+
+<a id='styles'></a>
+# Styles
+
+*function* **ADD-STYLE**
+
+*function* **REMOVE-STYLE**
+
+*function* **FIND-STYLE-BY-ID**
+
+<a id='utilities'></a>
+# Utilities
+
+*function* **FIND-CHILD/TAG**
+
+*function* **FIND-CHILDREN/TAG**
+
+*function* **ENSURE-CHILD/TAG**
+
+*function* **REMOVE-CHILD/TAG**
+
+*function* **MAKE-ELEMENT/ATTRS**

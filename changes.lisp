@@ -231,3 +231,10 @@
 		      (or outfile
 			  (merge-pathnames (format nil "~A-out" (pathname-name infile))
 					   infile)))))
+
+(defun apply-changes (infile outfile style-list)
+  (let ((document (open-document infile)))
+    (add-ipc-styles document style-list t)
+    (process-document document)
+    (opc:save-package (opc-package document) outfile))
+  outfile)
