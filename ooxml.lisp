@@ -1,3 +1,5 @@
+;;;; ooxml.lisp
+
 (cl:in-package #:docxplora)
 
 (defclass document ()
@@ -7,27 +9,19 @@
   (let ((opc-package (opc:open-package pathname)))
     (make-instance 'document :package opc-package)))
 
-(defun ensure-xml (part)
-  (when (eql 'opc:opc-part (type-of part))
-    (change-class part 'opc:opc-xml-part)
-    (setf (opc:xml-root part)
-	  (plump:parse (flexi-streams:octets-to-string (opc:content part) :external-format :utf8))))
-  part)
+(defun make-document ()
+  (let ((opc-package (make-instance 'opc:opc-package)))
+    (make-instance 'document :package opc-package)))
 
-;; (defun make-document ()
-;;   (let* ((package (opc:make-opc-package))
-;; 	 (doc (make-instance 'document :package package))
-;; 	 (md (opc:create-part package "/word/document.xml" (opc:ct "WML_DOCUMENT"))))
-;;     (setf (content md) "")
-;;     (ensure-xml md)
-;;     (opc::make-opc-xml-header (opc:xml-root md))))
+(defun save-document (document &optional pathname)
+  (opc:save-package (opc-package document) pathname))
 
 (defgeneric get-part-by-name (document name &optional ensure-xml)
   (:method ((document document) (name string) &optional ensure-xml)
     (let* ((package (opc-package document))
 	   (part (opc:get-part package name)))
       (if ensure-xml
-	  (ensure-xml part)
+	  (opc:ensure-xml part)
 	  part))))
     
 (defun main-document (document)
@@ -36,7 +30,7 @@
 	 (target (opc:uri-merge "/" (opc:target-uri rel))))
     (get-part-by-name document target t)))
 
-(defun document-type (document) ;;FIXME - return actual types
+(defun document-type (document) ; FIXME - return actual types
   (let ((mdp-ct (opc:content-type (main-document document))))
     (cond ((member mdp-ct *wml-content-types* :test #'string-equal)
 	   :wordprocessing-document)
@@ -45,6 +39,22 @@
 	  ((member mdp-ct *pml-content-types* :test #'string-equal)
 	   :presentation-document)
 	  (t :opc-package))))
+
+;;; WML
+
+(defun add-main-document (document)
+  (let* ((package (opc-package document))
+	 (part (opc:create-xml-part package "/word/document.xml" (opc:ct "WML_DOCUMENT_MAIN")))
+	 (root (opc:xml-root part))
+	 (doc (plump:make-element root "w:document"))
+	 (body (plump:make-element doc "w:body")))
+    (plump:make-element body "w:p")
+    (dolist (ns *md-namespaces*)
+      (setf (plump:attribute doc (format nil "xmlns:~(~A~)" (car ns))) (cdr ns))) ; FIXME - strings in table
+    (dolist (mc *md-ignorable*)
+      (setf (plump:attribute doc (car mc)) (cdr mc)))
+    (opc:create-relationship package "/word/document.xml" (opc:rt "OFFICE_DOCUMENT"))
+    part))
 
 ;;; FIXME can also be target of glossary-document
 
@@ -115,7 +125,7 @@
 
 ;;; styles
 
-(defun make-style-definitions (document) ;; FIXME Not Yet Implemented
+(defun make-style-definitions (document) ; FIXME Not Yet Implemented
   ;; make-instance; add xml; get right name; add to package; add to relationships, creating if necessary; return part
   nil)
   
@@ -138,7 +148,7 @@
   (:method ((document document) (style plump:element))
     (plump:remove-child style)))
 
-(defgeneric find-style-by-id (target style-id &optional include-latent) ;; FIXME mixes ids and names
+(defgeneric find-style-by-id (target style-id &optional include-latent) ; FIXME mixes ids and names
   (:method ((document document) (style-id string) &optional include-latent)
     (alexandria:when-let ((style-definitions (style-definitions document)))
       (let ((styles (first (plump:get-elements-by-tag-name
@@ -176,3 +186,16 @@
 
 (defun make-element/attrs (root tag-name &rest attributes)
   (plump:make-element root tag-name :attributes (alexandria:plist-hash-table attributes :test 'equalp)))
+
+(defun coalesce-adjacent-text (run)
+  (let ((groups (serapeum:runs (plump:children run) :key #'plump:tag-name :test #'string=)))
+    (dolist (group groups)
+      (when (and (< 1 (length group))
+		 (string= "w:t" (plump:tag-name (alexandria:first-elt group))))
+	(let ((first-node (alexandria:first-elt group))
+	      (text (serapeum:string-join (map 'list #'plump:text group))))
+	  (setf (plump:text (plump:first-child first-node)) text) ; textual node
+	  (when (char= #\Space (alexandria:last-elt text))
+	    (setf (plump:attribute first-node "xml:space") "preserve"))
+	  (serapeum:do-each (node (subseq group 1))
+	    (plump:remove-child node)))))))

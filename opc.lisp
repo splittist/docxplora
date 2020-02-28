@@ -33,7 +33,7 @@
    (%name :initarg :name :accessor part-name)
    (%content-type :initarg :type :accessor content-type)
    (%part-relationships :initarg :relationships :accessor part-relationships))
-  (:default-initargs :relationships (make-hash-table :test 'equal)))
+  (:default-initargs :content nil :relationships (make-hash-table :test 'equal)))
 
 (defmethod print-object ((object opc-part) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -119,6 +119,8 @@
 	     (extension (uri-extension name))
 	     (ct (content-type part)))
 	(cond
+	  ((string= "/[Content_Types].xml" name)
+	   nil)
 	  ((not (member extension (alexandria:hash-table-keys defaults) :test #'string-equal))
 	   (setf (gethash extension defaults) ct))
 	  ((string= ct (gethash extension defaults))
@@ -190,8 +192,8 @@
        while (find rid ids :test 'string-equal)
 	 finally (return rid))))
 
-(defgeneric create-relationship (source uri relationship-type &optional id target-mode) ;; FIXME - keys, rather than optional
-  (:method ((source opc-package) (uri string) (relationship-type string) &optional id (target-mode "Internal"))
+(defgeneric create-relationship (source uri relationship-type &key id target-mode)
+  (:method ((source opc-package) (uri string) (relationship-type string) &key id (target-mode "Internal"))
     (let* ((rels (package-relationships source))
 	   (id (or id (next-rid rels))))
       (setf (gethash id rels)
@@ -202,7 +204,7 @@
 			   :source "/"
 			   :package source
 			   :target uri)))) ;; FIXME uri-relative
-  (:method ((source opc-part) (uri string) (relationship-type string) &optional id (target-mode "Internal"))
+  (:method ((source opc-part) (uri string) (relationship-type string) &key id (target-mode "Internal"))
     (let* ((rels (part-relationships source))
 	   (id (or id (next-rid rels))))
       (setf (gethash id rels)
@@ -404,6 +406,19 @@
   ((%xml-root :initarg :xml-root :accessor xml-root)))
 
 (defclass opc-xml-part (opc-part xml-root-mixin) ())
+
+(defun ensure-xml (part)
+  (when (eql 'opc-part (type-of part))
+    (change-class part 'opc-xml-part)
+    (setf (xml-root part)
+	  (plump:parse (flexi-streams:octets-to-string (content part) :external-format :utf8))))
+  part)
+
+(defun create-xml-part (package uri content-type)
+  (let ((part (create-part package uri content-type)))
+    (ensure-xml part)
+    (make-opc-xml-header (xml-root part))
+    part))
 
 (defgeneric flush-part (part)
   (:method (part)

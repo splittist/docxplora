@@ -43,17 +43,22 @@
    #:opc-xml-part
    #:xml-root
    #:flush-part
-   #:write-part))
+   #:write-part
+   #:ensure-xml
+   #:create-xml-part))
 
 (defpackage #:docxplora
   (:use #:cl)
   (:export
    #:document
-   #:document-type
    #:opc-package
    #:open-document
+   #:make-document
+   #:save-document
+   #:document-type
    #:get-part-by-name
    #:main-document
+
    #:comments
    #:document-settings
    #:endnotes
