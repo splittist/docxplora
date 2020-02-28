@@ -213,7 +213,7 @@
 	(make-ipc-style "IPCMoveTo" "IPC MoveTo" "385623" "C5E0B3")
 	(make-ipc-style "IPCMoveFrom" "IPC MoveFrom" "385623" "C5E0B3" :strike t)))
 
-(defun add-ipc-styles (document &optional (style-list *modern-ipc-styles*) replace) ;; FIXME check styles not already there
+(defun add-ipc-styles (document &optional (style-list *modern-ipc-styles*) replace) ; FIXME check styles not already there
   (dolist (style style-list)
     (alexandria:if-let (existing-style (find-style-by-id document (plump:attribute style "w:styleId")))
       (when replace
@@ -227,14 +227,14 @@
   (let ((document (open-document infile)))
     (add-ipc-styles document)
     (process-document document)
-    (opc:save-package (opc-package document)
-		      (or outfile
-			  (merge-pathnames (format nil "~A-out" (pathname-name infile))
-					   infile)))))
+    (save-document document
+		   (or outfile
+		       (merge-pathnames (format nil "~A-out" (pathname-name infile))
+					infile)))))
 
 (defun apply-changes (infile outfile style-list)
   (let ((document (open-document infile)))
     (add-ipc-styles document style-list t)
     (process-document document)
-    (opc:save-package (opc-package document) outfile))
+    (save-document document outfile))
   outfile)
