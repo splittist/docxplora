@@ -188,7 +188,7 @@
 (defun next-rid (relhash)
   (let ((ids (alexandria:hash-table-keys relhash)))
     (loop for i from 1
-       with rid = (format nil "rId~D" i)
+       for rid = (format nil "rId~D" i) then (format nil "rId~D" i)
        while (find rid ids :test 'string-equal)
 	 finally (return rid))))
 
@@ -433,3 +433,17 @@
   (with-open-file (out filespec :direction :output :if-exists :supersede :element-type '(unsigned-byte 8) :external-format :utf8)
     (flush-part part)
     (write-sequence (content part) out)))
+
+(defun add-core-properties-part (package)
+  (let* ((part (create-xml-part package "/docProps/core.xml" (ct "OPC_CORE_PROPERTIES")))
+	 (root (xml-root part))
+	 (cp (plump:make-element root "cp:coreProperties")))
+    (dolist (ns *cp-namespaces*)
+      (setf (plump:attribute cp (format nil "xmlns:~A" (car ns))) (cdr ns)))
+#+(or)    (dolist (entry *cp-contents*)
+      (etypecase entry
+	(string (plump:make-fulltext-element cp entry))
+	(list (let ((element (plump:make-fulltext-element cp (first entry))))
+		(setf (plump:attribute element (second entry)) (third entry))))))
+    (create-relationship package "/docProps/core.xml" (rt "CORE_PROPERTIES"))
+    part))

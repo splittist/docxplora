@@ -50,7 +50,7 @@
 	 (body (plump:make-element doc "w:body")))
     (plump:make-element body "w:p")
     (dolist (ns *md-namespaces*)
-      (setf (plump:attribute doc (format nil "xmlns:~(~A~)" (car ns))) (cdr ns))) ; FIXME - strings in table
+      (setf (plump:attribute doc (format nil "xmlns:~A" (car ns))) (cdr ns)))
     (dolist (mc *md-ignorable*)
       (setf (plump:attribute doc (car mc)) (cdr mc)))
     (opc:create-relationship package "/word/document.xml" (opc:rt "OFFICE_DOCUMENT"))
@@ -62,7 +62,7 @@
   (let* ((main-document (main-document document))
 	 (rel (first (opc:get-relationships-by-type main-document rt))))
     (when rel
-      (let((target (opc:uri-merge (opc:part-name main-document) (opc:target-uri rel))))
+      (let ((target (opc:uri-merge (opc:part-name main-document) (opc:target-uri rel))))
 	(get-part-by-name document target t)))))
 
 (defun comments (document)
@@ -86,8 +86,34 @@
 (defun numbering-definitions (document)
   (md-target document (opc:rt "NUMBERING")))
 
+(defun add-numbering-definitions (document)
+  (let* ((package (opc-package document))
+	 (md (main-document document))
+	 (part (opc:create-xml-part package "/word/numbering.xml" (opc:ct "WML_NUMBERING")))
+	 (root (opc:xml-root part))
+	 (numbering (plump:make-element root "w:numbering")))
+    (dolist (ns *md-namespaces*)
+      (setf (plump:attribute numbering (format nil "xmlns:~A" (car ns))) (cdr ns)))
+    (dolist (mc *md-ignorable*)
+      (setf (plump:attribute numbering (car mc)) (cdr mc)))
+    (opc:create-relationship md (opc:uri-relative "/word/document.xml" "/word/numbering.xml") (opc:rt "NUMBERING"))
+    part))
+
 (defun style-definitions (document)
   (md-target document (opc:rt "STYLES")))
+
+(defun add-style-definitions (document)
+  (let* ((package (opc-package document))
+	 (md (main-document document))
+	 (part (opc:create-xml-part package "/word/styles.xml" (opc:ct "WML_STYLES")))
+	 (root (opc:xml-root part))
+	 (styles (plump:make-element root "w:styles")))
+    (dolist (nss (list "mc" "r" "w" "w14" "w15" "w16cid" "w16se"))
+      (let ((ns (assoc nss *md-namespaces* :test #'string=)))
+	(setf (plump:attribute styles (format nil "xmlns:~A" (car ns))) (cdr ns))))
+    (setf (plump:attribute styles "mc:Ignorable") "w14 w15 w16cid w16se") ; FIXME - better way to set markup compatibilty
+    (opc:create-relationship md (opc:uri-relative "/word/document.xml" "/word/styles.xml") (opc:rt "STYLES"))
+    part))
 
 (defun web-settings (document)
   (md-target document (opc:rt "WEB_SETTINGS")))
@@ -122,6 +148,18 @@
 ;;  with ../mailMergeSource rel type
 
 ;; XSL Transformation ditto @ w:saveThroughXslt via r:id with .../transform
+
+;;; Hyperlinks (external)
+
+(defun find-hyperlink (source uri)
+  (find uri (opc:get-relationships-by-type source (opc:rt "HYPERLINK"))
+	:key #'opc:target-uri
+	:test #'string-equal)) ; FIXME Genrally check string= / string-equal
+
+(defun ensure-hyperlink (source uri)
+  (alexandria:if-let ((existing (find-hyperlink source uri)))
+    existing
+    (opc:create-relationship source uri (opc:rt "HYPERLINK") :target-mode "External")))
 
 ;;; styles
 
@@ -194,8 +232,124 @@
 		 (string= "w:t" (plump:tag-name (alexandria:first-elt group))))
 	(let ((first-node (alexandria:first-elt group))
 	      (text (serapeum:string-join (map 'list #'plump:text group))))
+	  (unless (plump:first-child first-node)
+	    (plump:make-text-node first-node)) ; FIXME test if this can create nonsense
 	  (setf (plump:text (plump:first-child first-node)) text) ; textual node
 	  (when (char= #\Space (alexandria:last-elt text))
 	    (setf (plump:attribute first-node "xml:space") "preserve"))
 	  (serapeum:do-each (node (subseq group 1))
 	    (plump:remove-child node)))))))
+
+#||
+
+Style elements:
+
+__General__
+
+basedOn - val= styleID of parent
+
+link - val=styleID ; links character to paragraph styles and vice versa
+
+
+
+name - val=string - primary style name
+
+next - val=styleId ; style for next paragraph; paragraph styles only
+
+qFormat - present or absent - treated as a primary style by application
+
+
+
+aliases - val= comma separated list of style names (for UI)
+
+autoRedefine - present or absent (interaction)
+
+hidden - present or absent (UI)
+
+locked - present or absent (UI)
+
+personal - val=boolean (email message context); character styles only
+
+personalCompose - val=boolean (email message context); character styles only
+
+personalReply - ditto
+
+rsid - val=four byte number (Long Hexidecimal Number Value) - editing session
+
+semiHidden - present or absent - initially visible (UI)
+
+uiPriority - val=number optional UI sorting order
+
+unhideWhenUsed - present or absent
+
+
+
+__Latent Styles__
+
+latentStyles - behaviour properties (rather than formatting properties) for application (UI etc)
+  attributes: count=number, defLockedState=boolean, defQFormat=boolean, defSemiHidden=boolean, defUIPriority=number, defUnhideWhenUsed=boolean, 
+
+lsdException - exception for named latent style
+  attributes: name=primary-name (as known to application), locked=boolean, qFormat=boolean, semiHidden=boolean, uiPriority=number, unhideWhenUsed=boolean
+
+
+
+__styles.xml__
+
+styles - container for style definitions and latent styles
+
+w:docDefaults>w:rPrDefault>w:rPr^w:pPrDefault>w:pPr
+
+w:latentStyles goes here
+
+style - general style properties; style type (paragraph, character, table, numbering); style type-specific properties
+  attributes: customStyle=boolean; default=boolean; styleId=string; type="paragraph" etc
+
+__Character Styles__
+
+type="character"
+
+General Elements
+
+w:rPr
+
+__Paragraph Styles__
+
+type="paragraph"
+
+General Elements
+
+w:rPr - for all runs
+
+w:pPr - paragraph properties; numbering reference is ref to numbering definition only, which in turn has a reference to the paragraph styleon the level associated with the style
+
+__Table Styles__
+
+type="table"
+
+General Elements
+
+w:tblPr
+
+w:tblStylePr w:type="firstRow"|... ; inlcudes w:tblPr {heaps of stuff}
+
+__Numbering Styles__
+
+type="numbering"
+
+w:pPr>w:numPr>w:numId[w:val="~D"
+
+only info specified is ref to numbering defintion
+
+__Run Properties__
+
+b - toggle (bold)
+
+bCs - toggle (complex script bold)
+
+bdo - val="rtl"|"ltr"
+
+bdr - [17.3.2.5]
+
+
+||#

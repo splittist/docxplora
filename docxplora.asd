@@ -10,6 +10,7 @@
 			    #:zip #:flexi-streams
 			    #:plump #:lquery)
   :components ((:file "package")
+	       (:file "wuss")
 	       (:file "opc-content-types")
 	       (:file "opc-relationship-types")
 	       (:file "opc-namespaces")
@@ -17,6 +18,4 @@
 	       (:file "ooxml-content-types")
 	       (:file "wml-namespaces")
 	       (:file "ooxml")
-               (:file "docxplora")
-
-	       (:file "changes")))
+               (:file "docxplora")))

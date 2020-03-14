@@ -30,6 +30,7 @@
    #:target-uri
    #:target-mode
    #:relationship-type
+   #:relationship-id
    #:uri-extension
    #:uri-filename
    #:uri-directory
@@ -80,9 +81,16 @@
    #:find-children/tag
    #:ensure-child/tag
    #:remove-child/tag
-   #:make-element/attrs))
+   #:make-element/attrs
+   #:coalesce-adjacent-text
+   #:add-style-definitions
+   #:add-main-document
+   #:create-hyperlink
+   #:ensure-hyperlink
 
-(defpackage #:docxplora.changes
-  (:use #:cl #:docxplora)
+   #:add-numbering-definitions))
+
+(defpackage #:wuss
+  (:use #:cl)
   (:export
    ))

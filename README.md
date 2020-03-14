@@ -87,7 +87,7 @@ Returns the `OPC-PART` named `uri` in `package`.
 
 Represents a relationship between two parts - the source and the target - having a particular relationship type, and identified by an id. A relationshp is owned by the source (a part or the package; this latter is named "/").
 
-*function* **CREATE-RELATIONSHIP** `source` `uri` `relationship-type` &optional `id` `(target-mode "Internal")`
+*function* **CREATE-RELATIONSHIP** `source` `uri` `relationship-type` &key `id` `(target-mode "Internal")`
 
 Creates an `OPC-RELATIONSHIP` from `source` (an `OPC-PACKAGE` or `OPC-PART`) to the target at `uri` with relationship type `relationship-type`. If `id` is not supplied, one will be automatically generated. `target-mode` should be "Internal" or "External". `uri`, `relationship-type`, `id` and `target-mode` are strings.
 
@@ -122,6 +122,10 @@ The target mode (should be "Internal" - indicating an `OPC-PART` in an `OPC-PACK
 *function* **RELATIONSHIP-TYPE** `relationship`
 
 The relationship type (a string) of the `OPC-RELATIONSHIP` `relationship`.
+
+*function* **RELATIONSHIP-ID** `relationship`
+
+The unique id (a string) of the relationship (with respect to the source).
 
 <a id='uris'></a>
 # URIs
