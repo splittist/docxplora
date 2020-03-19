@@ -88,9 +88,15 @@
    #:create-hyperlink
    #:ensure-hyperlink
 
-   #:add-numbering-definitions))
+   #:add-numbering-definitions
+   #:recolor-string))
 
 (defpackage #:wuss
   (:use #:cl)
   (:export
-   ))
+   #:compile-style))
+
+(defpackage #:recolor
+  (:use #:cl)
+  (:export
+   #:recolor-string))

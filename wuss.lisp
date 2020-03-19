@@ -83,3 +83,7 @@
     (dolist (child children) (process child))
     (format t "</w:~A>" (frob-form tag))))
       
+(defun compile-style (style-form)
+  (with-output-to-string (s)
+    (let ((*standard-output* s))
+      (process (pre-process (make-source style-form))))))

@@ -225,6 +225,20 @@
 (defun make-element/attrs (root tag-name &rest attributes)
   (plump:make-element root tag-name :attributes (alexandria:plist-hash-table attributes :test 'equalp)))
 
+(defun rpr-boolean-property (rpr property-name)
+  (let ((prop (first (plump:get-elements-by-tag-name rpr property-name))))
+    (when prop
+      (let ((val (plump:attribute prop "w:val")))
+	(cond
+	  ((null val) t)
+	  ((string= "1" val) t)
+	  ((string= "true" val) t)
+	  ((string= "on" val) t)
+	  ((string= "0" val) nil)
+	  ((string= "false" val) nil)
+	  ((string= "off" val) nil)
+	  (t nil))))))
+
 (defun coalesce-adjacent-text (run)
   (let ((groups (serapeum:runs (plump:children run) :key #'plump:tag-name :test #'string=)))
     (dolist (group groups)
@@ -239,7 +253,21 @@
 	    (setf (plump:attribute first-node "xml:space") "preserve"))
 	  (serapeum:do-each (node (subseq group 1))
 	    (plump:remove-child node)))))))
+#||
+(defun node-equal (node1 node2)
+  (let ((attrs1 (plump:attributes node1))
+	(children1 (plump:children node1))
+	(attrs2 (plump:attributes node2))
+	(children2 (plump:children node2)))
+    (
 
+(defun runs-compatible-p (run1 run2)
+  (let ((rpr1 (first (plump:get-elements-by-tag-name run1 "w:rPr")))
+	(rpr2 (first (plump:get-elements-by-tag-name run2 "w:rPr"))))
+    (and rpr1
+	 rpr2
+	 (rpr-equal rpr1 rpr2))))
+||#
 #||
 
 Style elements:
