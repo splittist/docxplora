@@ -1,5 +1,10 @@
 ;;;; recolor.lisp
 
+(cl:defpackage #:recolor
+  (:use #:cl)
+  (:export
+   #:recolor-string))
+
 (cl:in-package #:recolor)
 
 (defgeneric process-node (node))

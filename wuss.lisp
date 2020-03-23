@@ -1,5 +1,10 @@
 ;;;; wuss.lisp
 
+(cl:defpackage #:wuss
+  (:use #:cl)
+  (:export
+   #:compile-style))
+
 (cl:in-package #:wuss)
 
 (defun read-forms (stream)
@@ -57,6 +62,7 @@
 	(tag (pop-source source)))
     (loop for (next left) = (multiple-value-list (peek-source source))
        until (or (null left)
+		 ;(listp next)
 		 (keywordp next))
        do (if (consp next)
 	      (push (pre-process (make-source (pop-source source))) children)

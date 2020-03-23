@@ -89,14 +89,6 @@
    #:ensure-hyperlink
 
    #:add-numbering-definitions
-   #:recolor-string))
+   #:make-inline-image))
 
-(defpackage #:wuss
-  (:use #:cl)
-  (:export
-   #:compile-style))
 
-(defpackage #:recolor
-  (:use #:cl)
-  (:export
-   #:recolor-string))
