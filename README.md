@@ -10,7 +10,11 @@ This is a project to manipulate docx files, primarily those created by Microsoft
 * [Open Office XML](#ooxml)
   * [Documents](#documents)
   * [Parts](#parts)
+* [WordprocessingML](#wordprocessingml)
+  * [Parts](#wml-parts)
+  * [Images](#images)
   * [Styles](#styles)
+  * [Numbering](#nubmering)
   * [Utilities](#utilities)
   
 <a id="opc"></a>
@@ -21,7 +25,7 @@ This is a project to manipulate docx files, primarily those created by Microsoft
 OPC files are zipped containers of other files, and include a map between files and content types (analogous to MIME-types) and 'rels' files to provide a level of indirection for relationships between contained files. The container is a **package**, and the files are **part**s. Each **part** has a **content type**, and may have **relationship**s to other **part**s, each **relationship** having an **Id** and a **relationship type**. **Part**s are named by **uri**s, which are path-like strings.
 
 <a id='packages'></a>
-# Packages, Parts and Relationships
+### Packages, Parts and Relationships
 
 *class* **OPC-PACKAGE**
 
@@ -37,7 +41,7 @@ Returns an `OPC-PACKAGE` created from the file at `pathname`.
 
 *function* **FLUSH-PACKAGE** `package`
 
-Updates the `/[CONTENT_TYPES].xml` and `*.rels` parts of `package`, and th e `CONTENT` of each part in `package`. (See **FLUSH-PART**.)
+Updates the `/[CONTENT_TYPES].xml` and `*.rels` parts of `package`, and the `CONTENT` of each part in `package`. (See **FLUSH-PART**.)
 
 *function* **SAVE-PACKAGE** `package` &optional `pathname`
 
@@ -128,7 +132,7 @@ The relationship type (a string) of the `OPC-RELATIONSHIP` `relationship`.
 The unique id (a string) of the relationship (with respect to the source).
 
 <a id='uris'></a>
-# URIs
+### URIs
 
 These functions deal only with internal uris, i.e. those indicating `OPC-PART`s within an `OPC-PACKAGE`. Uris are rooted at the package-level with "/", which is sometimes also used to represent the package itself.
 
@@ -153,7 +157,7 @@ Returns a uri (a string) identifying `target` relative to `source` (both `target
 Takes the uri `target` expressed relative to `source` and returns an absolute uri (all uris being strings). `URI-MERGE` and `URI-RELATIVE` are inverses.
 
 <a id='content-types'></a>
-# Content Types, Relationship Types and Namespaces
+### Content Types, Relationship Types and Namespaces
 
 Because content types, relationship types and namespaces are represented by long strings, convenience functions mapping from shorter strings to the canonical form are provided.
 
@@ -170,7 +174,7 @@ Returns the relationship type represented by the short string `name`.
 Returns the namespace represented by the short string `name`.
 
 <a id='xml'></a>
-# XML
+### XML
 
 *class* **OPC-XML-PART**
 
@@ -184,69 +188,200 @@ The **PLUMP:ROOT** of the xml content of the part, if any.
 
 Called on each `part` when the enclosing opc package is being flushed, usually prior to saving. An `OPC-XML-PART` will serialize its xml to octets in its `CONTENT`.
 
-*function* **WRITE-PART**
+*function* **WRITE-PART** `part` `filespec` &key (`if-exists` `:supersede`)
+
+Writes `part` to the file indicated by `filespec`; `if-exists` as for `CL:OPEN-FILE`.
+
+*function* **ENSURE-XML** `part`
+
+Returns `part` as an **OPC-XML-PART**.
+
+*function* **CREATE-XML-PART** `package` `uri` `content-type`
+
+Returns a new **OPC-XML-PART** in the **OPC-PACKAGE** `package` at `uri` (a string) with content type `content-type` (a string).
 
 <a id='ooxml'></a>
 ## Open Office XML
 
+These classes and functions should, in principle, apply to all Open Office XML documents (Word, Excel and Powerpoint).
+
 <a id='documents'></a>
-# Documents
+### Documents
 
 *class* **DOCUMENT**
 
-*function* **DOCUMENT-TYPE**
+Represents an **Open Office XML** document.
 
-*function* **OPC-PACKAGE**
+*function* **OPC-PACKAGE** `document`
 
-*function* **OPEN-DOCUMENT**
+Returns the `OPC-PACKAGE` incarnating `document`.
+
+*function* **OPEN-DOCUMENT** `pathname`.
+
+Returns a `DOCUMENT` created from the file at `pathname`.
+
+*function* **MAKE-DOCUMENT**
+
+Returns a fresh `DOCUMENT` object.
+
+*function* **SAVE-DOCUMENT** `document` &optional `pathname`
+
+Saves `document` to `pathname` using `opc:save-package`.
+
+*function* **DOCUMENT-TYPE** `document`
+
+Returns the type of `document` as a keyword: `:wordprocessing-document`, `:spreadsheet-document`, `:presentation-document` or `:opc-package`.
 
 <a id='parts'></a>
-# Parts
+### Parts
 
-*function* **GET-PART-BY-NAME**
+*function* **GET-PART-BY-NAME** `document` `name` &optional `ensure-xml`
 
-*function* **MAIN-DOCUMENT**
+Returns the **OPC-PART** (or subclass) named `name` (a string) in `document`.
 
-*function* **COMMENTS**
+*function* **MAIN-DOCUMENT** `document`
 
-*function* **DOCUMENT-SETTINGS**
+Returns the **Main Document** part of the **OOXML** document `document`.
 
-*function* **ENDNOTES**
+<a id='wordprocessingml'></a>
+## WordprocessingML
 
-*function* **FOOTNOTES**
+These classes and functions apply to **WordprocessingML** documents as produced by Microsoft Word and equivalents.
+
+<a id='wml-parts'></a>
+### Parts
+
+*function* **COMMENTS** `document`
+
+Returns the **Comments** part of `document`, if any.
+
+*function* **DOCUMENT-SETTINGS** `document`
+
+Returns the **Document Settings* part of `document`, if any.
+
+*function* **ENDNOTES** `document`
+
+Returns the **Endnotes** part of `document`, if any.
+
+*function* **FOOTNOTES** `document`
+
+Returns the **Footnotes** part of `document`, if any.
 
 *function* **FONT-TABLE**
 
+Returns the **Font Table** part of `document`, if any.
+
 *function* **GLOSSARY-DOCUMENT**
+
+Returns the **Glossary Document** part of `document`, if any.
 
 *function* **NUMBERING-DEFINITIONS**
 
-*function* **STYLE-DEFINITIONS**
+Returns the **Numbering Definitions** part of `document`, if any.
 
-*function* **WEB-SETTINGS**
+*function* **STYLE-DEFINITIONS** `document`
 
-*function* **HEADERS**
+Returns the **Style Definitions** part of `document`, if any.
+
+*function* **WEB-SETTINGS** `document`
+
+Returns the **Web Settings** part of `document`, if any.
+
+*function* **HEADERS** `document`
+
+Returns a list of **Header** parts of `document`
 
 *function* **FOOTERS**
 
+Returns a list of **Footer** parts of `document`
+
+*function* **ADD-MAIN-DOCUMENT** `document`
+
+Adds a fresh **Main Document** part to `document`, initialized with a `w:body` element containing an empty paragraph (`w:p`), replacing any pre-existing **Main Document** part. Returns the new part.
+
+*function* **ENSURE-MAIN-DOCUMENT** `document`
+
+Returns the **Main Document** part of `document`, either existing or as created by `ADD-MAIN-DOCUMENT`.
+
+<a id='images'></a>
+### Images
+
+*function* **MAKE-INLINE-IMAGE** `part` `image`
+Adds the image at `image` (a pathname) to the `DOCUMENT` containing `part` (an `OPC-PART`), creates the appropriate **relationship** between `part` and the new image part, and returns a `w:drawing` element suitable for adding to the **xml** in `part`.
+
 <a id='styles'></a>
-# Styles
+### Styles
 
-*function* **ADD-STYLE**
+*function* **ADD-STYLE-DEFINITIONS** `document`
 
-*function* **REMOVE-STYLE**
+Adds a **Style Definitions** part to `document` and returns it.
 
-*function* **FIND-STYLE-BY-ID**
+*function* **ENSURE-STYLE-DEFINITIONS** `document`
+
+Returns the **Style Definitions** part of `document`, either existing or as created by `ADD-STYLE-DEFINITIONS`. 
+
+*function* **ADD-STYLE** `target` `style`
+
+Adds `style` (a `w:style` **PLUMP-DOM:ELMENT**) to `target`, a **document**.
+
+*function* **REMOVE-STYLE** `target` `style`
+
+Removes `style` (a string representing a **style id**, or a `w:style` **PLUMP:ELEMENT**) from `target`, a **document**.
+
+*function* **FIND-STYLE-BY-ID** `target` `style-id` &optional `include-latent`
+
+Returns the **style** from `target` (a **document**) with the **style id** `style-id` (a string), if any. If `include-latent` is non-`NIL`, also looks at **latent styles**.
+
+<a id='numbering'></a>
+### Numbering
+
+*function* **ADD-NUMBERING-DEFINITIONS** `document`
+
+Adds a **Numbering Definitions** part to `document`, and returns it.
+
+*function* **ENSURE-NUMBERING-DEFINITIONS**
+
+Returns the **Numbering Definitions** part of `document`, either existing or as created by **ADD-NUMBERING-DEFINITIONS**.
+
+*function* **MAKE-NUMBERING-START-OVERRIDE** `numbering-definitions` `abstract-num-id` &key (`ilvl` 0) (`start` 1)
+
+Returns a `w:num` **PLUMP-DOM:ELEMENT** with an appropriate **Num Id** for addition to `numbering-definitions` (a **Numbering Definitions** part) referring to `abstract-num-id` (a string or integer) providing for a restart of numbering at **iLvl* `ilvl` at `start` (both integers or strings representing decimal integers).
 
 <a id='utilities'></a>
-# Utilities
+### Utilities
 
-*function* **FIND-CHILD/TAG**
+Some handy (lazy?) shortcuts and generally useful functions.
 
-*function* **FIND-CHILDREN/TAG**
+*function* **FIND-CHILD/TAG** `parent` `child-tag-name`
 
-*function* **ENSURE-CHILD/TAG**
+Returns the (first) child of `parent` (a **PLUMP-DOM:ELEMENT**) with the **tag name** `child-tag-name`.
 
-*function* **REMOVE-CHILD/TAG**
+*function* **FIND-CHILDREN/TAG** `parent` `child-tag-name`
 
-*function* **MAKE-ELEMENT/ATTRS**
+Returns a list of children of `parent` (a **PLUMP-DOM:ELEMENT**) with the **tag name** `child-tag-name`.
+
+*function* **ENSURE-CHILD/TAG** `parent` `child-tag-name` &optional `first`
+
+Returns the child of `parent` (a **PLUMP-DOM:ELMENT**) named `child-tag-name` (a string), creating it if necessary. If `first` is non-`NIL`, a created child will be the first child of `parent`.
+
+*function* **REMOVE-CHILD/TAG** `parent` `child-tag-name`
+
+Removes the child named `child-tag-name` (a string) from `parent` (a **PLUMP-DOM:ELEMENT**), if any.
+
+*function* **MAKE-ELEMENT/ATTRS** `root` `tag-name` &rest `attrs`
+
+Returns a **PLUMP-DOM:ELEMENT** named `tag-name`, a child or `root` (a **PLUMP-DOM:ELEMENT**), with attributes (and values) in the **plist** `attrs`.
+
+*function* **GET-FIRST-ELEMENT-BY-TAG-NAME** `node` `tag`
+
+Returns the first descendant of `node` (a **PLUMP-DOM:ELEMENT**) with the **tag name** `tag` (a string).
+
+*function* **COALESCE-ADJACENT-TEXT** `run`
+
+Transforms `run` (a `w:run` **PLUMP-DOM:ELEMENT**) such that adjacent `w:t` elements are appropriately joined. For example, `<w:r><w:t>foo</w:t><w:t>bar</w:t></w:r>` becomes `<w:r><w:t>foobar</w:t></w:r>`. Useful for simplifying/consolidating programmatically generated text.
+
+*function* **RPR-BOOLEAN-PROPERTY** `rpr` `property-name`
+
+Returns `T` or `NIL` depending on the status of `property-name` (a string) representing a **boolean property** in the given **run properties** `rpr` (a `w:rPr` **PLUMP-DOM:ELEMENT**).
+
+

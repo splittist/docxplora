@@ -43,7 +43,7 @@
 (defun twip-emu (twip)
   (* twip 635))
 
-;; TOO MANY
+;; FIXME -- TOO MANY
 
 
 ;;; plump shortcuts
@@ -70,6 +70,9 @@
 
 (defun make-element/attrs (root tag-name &rest attributes)
   (plump:make-element root tag-name :attributes (alexandria:plist-hash-table attributes :test 'equalp)))
+
+(defun get-first-element-by-tag-name (node tag)
+  (first (plump:get-elements-by-tag-name node tag)))
 
 ;;; run properties
 

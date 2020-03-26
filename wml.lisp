@@ -2,7 +2,6 @@
 
 (cl:in-package #:docxplora)
 
-
 (defun add-main-document (document)
   (let* ((package (opc-package document))
 	 (part (opc:create-xml-part package "/word/document.xml" (opc:ct "WML_DOCUMENT_MAIN")))
@@ -16,6 +15,11 @@
       (setf (plump:attribute doc (car mc)) (cdr mc)))
     (opc:create-relationship package "/word/document.xml" (opc:rt "OFFICE_DOCUMENT"))
     part))
+
+(defun ensure-main-document (document)
+  (alexandria:if-let ((existing (main-document document)))
+    existing
+    (add-main-document document)))
 
 ;;; FIXME can also be target of glossary-document
 
@@ -75,6 +79,11 @@
     (setf (plump:attribute styles "mc:Ignorable") "w14 w15 w16cid w16se") ; FIXME - better way to set markup compatibilty
     (opc:create-relationship md (opc:uri-relative "/word/document.xml" "/word/styles.xml") (opc:rt "STYLES"))
     part))
+
+(defun ensure-style-definitions (document)
+  (alexandria:if-let ((sd (style-defintions document)))
+    sd
+    (add-style-definitions document)))
 
 (defun web-settings (document)
   (md-target document (opc:rt "WEB_SETTINGS")))

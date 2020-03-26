@@ -429,8 +429,8 @@
 	   (plump:serialize (xml-root part) nil)
 	   :external-format :utf8))))
 
-(defun write-part (part filespec)
-  (with-open-file (out filespec :direction :output :if-exists :supersede :element-type '(unsigned-byte 8) :external-format :utf8)
+(defun write-part (part filespec &key (if-exists :supersede))
+  (with-open-file (out filespec :direction :output :if-exists if-exists :element-type '(unsigned-byte 8) :external-format :utf8)
     (flush-part part)
     (write-sequence (content part) out)))
 

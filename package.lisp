@@ -72,23 +72,29 @@
    #:headers
    #:footers
 
+   #:add-main-document
+   
+   #:make-inline-image
+
+   #:add-style-definitions
    #:add-style
    #:remove-style
    #:find-style-by-id
-
    
+   #:create-hyperlink
+   #:ensure-hyperlink
+
+   #:add-numbering-definitions
+   #:ensure-numbering-definitions
+   #:make-numbering-start-override
+
    #:find-child/tag
    #:find-children/tag
    #:ensure-child/tag
    #:remove-child/tag
    #:make-element/attrs
+   #:get-first-element-by-tag-name
    #:coalesce-adjacent-text
-   #:add-style-definitions
-   #:add-main-document
-   #:create-hyperlink
-   #:ensure-hyperlink
-
-   #:add-numbering-definitions
-   #:make-inline-image))
+   ))
 
 

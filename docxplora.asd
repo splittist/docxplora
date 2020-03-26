@@ -6,6 +6,7 @@
   :license  "MIT"
   :version "0.0.1"
   :depends-on (#:alexandria #:uiop #:serapeum
+			    			    
 			    #:zip #:flexi-streams
 			    #:plump #:lquery
 
@@ -33,6 +34,7 @@
 	       (:file "wml" :depends-on ("package" "ooxml" "utils" "wml-namespaces"))
 
 	       (:file "styles" :depends-on ("package" "wml"))
+	       (:file "numbering" :depends-on ("package" "wml"))
 	       (:file "hyperlinks" :depends-on ("package" "wml"))
 	       (:file "images" :depends-on ("package" "wml"))
 

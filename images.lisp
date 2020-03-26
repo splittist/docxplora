@@ -2,7 +2,6 @@
 
 (cl:in-package #:docxplora)
 
-
 (defun next-image-name (part extension)
   (let* ((package (opc:opc-package part))
 	 (parts (opc:get-parts package))
