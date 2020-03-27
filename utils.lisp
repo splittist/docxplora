@@ -74,6 +74,9 @@
 (defun get-first-element-by-tag-name (node tag)
   (first (plump:get-elements-by-tag-name node tag)))
 
+(defun tagp (node tag)
+  (string= tag (plump:tag-name node)))
+
 ;;; run properties
 
 (defun rpr-boolean-property (rpr property-name)

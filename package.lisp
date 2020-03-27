@@ -81,7 +81,6 @@
    #:remove-style
    #:find-style-by-id
    
-   #:create-hyperlink
    #:ensure-hyperlink
 
    #:add-numbering-definitions
@@ -94,6 +93,7 @@
    #:remove-child/tag
    #:make-element/attrs
    #:get-first-element-by-tag-name
+   #:tagp
    #:coalesce-adjacent-text
    ))
 

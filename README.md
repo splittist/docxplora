@@ -14,6 +14,7 @@ This is a project to manipulate docx files, primarily those created by Microsoft
   * [Parts](#wml-parts)
   * [Images](#images)
   * [Styles](#styles)
+  * [Hyperlinks](#hyperlinks)
   * [Numbering](#nubmering)
   * [Utilities](#utilities)
   
@@ -332,6 +333,13 @@ Removes `style` (a string representing a **style id**, or a `w:style` **PLUMP:EL
 
 Returns the **style** from `target` (a **document**) with the **style id** `style-id` (a string), if any. If `include-latent` is non-`NIL`, also looks at **latent styles**.
 
+<a id='hyperlinks'></a>
+## Hyperlinks
+
+*function* **ENSURE-HYPERLINK** `source` `uri`
+
+Returns the **OPC:RELATIONSHIP** of type *external* *hyperlink* between `source` (a part or package) and `uri` (a string), creating it if necessary.
+
 <a id='numbering'></a>
 ### Numbering
 
@@ -376,6 +384,10 @@ Returns a **PLUMP-DOM:ELEMENT** named `tag-name`, a child or `root` (a **PLUMP-D
 
 Returns the first descendant of `node` (a **PLUMP-DOM:ELEMENT**) with the **tag name** `tag` (a string).
 
+*function* **TAGP** `node` `tag`
+
+Does `node` (a **PLUMP-DOM:ELEMENT**) have the *tag name* `tag` (a string)?
+
 *function* **COALESCE-ADJACENT-TEXT** `run`
 
 Transforms `run` (a `w:run` **PLUMP-DOM:ELEMENT**) such that adjacent `w:t` elements are appropriately joined. For example, `<w:r><w:t>foo</w:t><w:t>bar</w:t></w:r>` becomes `<w:r><w:t>foobar</w:t></w:r>`. Useful for simplifying/consolidating programmatically generated text.
@@ -385,3 +397,80 @@ Transforms `run` (a `w:run` **PLUMP-DOM:ELEMENT**) such that adjacent `w:t` elem
 Returns `T` or `NIL` depending on the status of `property-name` (a string) representing a **boolean property** in the given **run properties** `rpr` (a `w:rPr` **PLUMP-DOM:ELEMENT**).
 
 
+# WUSS
+
+*function* **COMPILE-STYLE** `style-form`
+
+Returns a string representing the *xml*-form of the *Style* or *Numbering* instance `style-form`, interpreted as follows:
+
+* A **keyword**, representing an element tag
+
+* Zero or more **attribute** *name*-*value* pairs, representing the attributes of the element (but see below)
+
+* Any children, in a parenthesised list.
+
+Symbols are converted from kebab-case to camel-case, strings are left as-is, and other items are `PRINC-TO-STRING`ed. Items in an element or attribute-name position have the "w" namespace prepended. If the length of the attribute list is odd, "w:val" is prepended as a further shorthand. 
+
+Examples might make this less obscure:
+
+```lisp
+(:style type "character" custom-style 1 style-id "mdcode"
+ (:name "MD Code"
+  :ui-priority 1
+  :q-format
+  :r-pr
+  (:no-proof
+   :f-fonts ascii "Consolas"
+   :sz 20
+   :shd 1 color "auto" fill "DCDCDC")))
+```
+
+yields:
+
+```xml
+<w:style w:type=\"character\" w:customStyle=\"1\" w:styleId=\"mdcode\" >
+	<w:name w:val=\"MD Code\" ></w:name>
+	<w:uiPriority w:val=\"1\" ></w:uiPriority>
+	<w:qFormat ></w:qFormat>
+	<w:rPr >
+		<w:noProof ></w:noProof>
+		<w:fFonts w:ascii=\"Consolas\" ></w:fFonts>
+		<w:sz w:val=\"20\" ></w:sz>
+		<w:shd w:val=\"1\" w:color=\"auto\" w:fill=\"DCDCDC\" ></w:shd>
+	</w:rPr>
+</w:style>
+```
+
+You can obviously generate your input forms however you wish.
+
+```lisp
+(defparameter *md-numbering-definitions*
+  `((:abstract-num abstract-num-id 1
+     (:multi-level-type "multilevel"
+      ,@(loop for i below 9 appending
+	     `(:lvl ilvl ,i
+	       (:start 1
+		:num-fmt ,(aref *md-number-formats* (mod i 3))	    
+		:lvl-text ,(format nil "%~D." (1+ i))
+		:lvl-jc "left"
+		:p-pr
+		(:ind left ,(* (1+ i) 720) hanging 360))))))
+    (:abstract-num abstract-num-id 2
+     (:multi-level-type "hybrid-multilevel"
+      ,@(loop for i below 9 appending
+	     `(:lvl ilvl ,i
+	       (:start 1
+		:num-fmt "bullet"
+		:lvl-text ,(aref *md-bullets* (mod i 3))       
+		:lvl-jc "left"
+		:p-pr
+		(:ind left ,(* (1+ i) 720) hanging 360))))))
+    (:num num-id 1
+     (:abstract-num-id 1))
+    (:num num-id 2
+     (:abstract-num-id 1
+      (:lvl-override ilvl 0
+       (:start-override 1))))
+    (:num num-id 3
+     (:abstract-num-id 2))))
+```
