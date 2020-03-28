@@ -1,3 +1,4 @@
+![docxplora](docxploralogo.png)
 # docxplora
 
 This is a project to manipulate docx files, primarily those created by Microsoft Word.
@@ -17,6 +18,7 @@ This is a project to manipulate docx files, primarily those created by Microsoft
   * [Hyperlinks](#hyperlinks)
   * [Numbering](#nubmering)
   * [Utilities](#utilities)
+* [WUSS](#wuss)
   
 <a id="opc"></a>
 ## OPC
@@ -396,8 +398,10 @@ Transforms `run` (a `w:run` **PLUMP-DOM:ELEMENT**) such that adjacent `w:t` elem
 
 Returns `T` or `NIL` depending on the status of `property-name` (a string) representing a **boolean property** in the given **run properties** `rpr` (a `w:rPr` **PLUMP-DOM:ELEMENT**).
 
-
+<a id="wuss"></a>
 # WUSS
+
+Word-focused Unsatisfactory Style Sheets, a possibly simpler way of specifying the somewhat wordy `w:style` and similar structures.
 
 *function* **COMPILE-STYLE** `style-form`
 
@@ -420,7 +424,7 @@ Examples might make this less obscure:
   :q-format
   :r-pr
   (:no-proof
-   :f-fonts ascii "Consolas"
+   :r-fonts ascii "Consolas"
    :sz 20
    :shd 1 color "auto" fill "DCDCDC")))
 ```
@@ -428,49 +432,26 @@ Examples might make this less obscure:
 yields:
 
 ```xml
-<w:style w:type=\"character\" w:customStyle=\"1\" w:styleId=\"mdcode\" >
-	<w:name w:val=\"MD Code\" ></w:name>
-	<w:uiPriority w:val=\"1\" ></w:uiPriority>
-	<w:qFormat ></w:qFormat>
+<w:style w:type="character" w:customStyle="1" w:styleId="mdcode" >
+	<w:name w:val="MD Code" />
+	<w:uiPriority w:val="1" />
+	<w:qFormat />
 	<w:rPr >
-		<w:noProof ></w:noProof>
-		<w:fFonts w:ascii=\"Consolas\" ></w:fFonts>
-		<w:sz w:val=\"20\" ></w:sz>
-		<w:shd w:val=\"1\" w:color=\"auto\" w:fill=\"DCDCDC\" ></w:shd>
+		<w:noProof />
+		<w:rFonts w:ascii="Consolas" />
+		<w:sz w:val="20" />
+		<w:shd w:val="1" w:color="auto" w:fill="DCDCDC" />
 	</w:rPr>
 </w:style>
 ```
+*function* **DECOMPILE-STYLE** `element`
 
-You can obviously generate your input forms however you wish.
+Returns a list of items in the style accepted by **COMPILE-STYLE** generated from `element`, a **PLUMP-DOM:ELEMENT**. The inverse of **COMPILE-STYLE**. The `<w:style>` element generated from the above xml, when fed to **DECOMPILE-STYLE** yields:
 
 ```lisp
-(defparameter *md-numbering-definitions*
-  `((:abstract-num abstract-num-id 1
-     (:multi-level-type "multilevel"
-      ,@(loop for i below 9 appending
-	     `(:lvl ilvl ,i
-	       (:start 1
-		:num-fmt ,(aref *md-number-formats* (mod i 3))	    
-		:lvl-text ,(format nil "%~D." (1+ i))
-		:lvl-jc "left"
-		:p-pr
-		(:ind left ,(* (1+ i) 720) hanging 360))))))
-    (:abstract-num abstract-num-id 2
-     (:multi-level-type "hybrid-multilevel"
-      ,@(loop for i below 9 appending
-	     `(:lvl ilvl ,i
-	       (:start 1
-		:num-fmt "bullet"
-		:lvl-text ,(aref *md-bullets* (mod i 3))       
-		:lvl-jc "left"
-		:p-pr
-		(:ind left ,(* (1+ i) 720) hanging 360))))))
-    (:num num-id 1
-     (:abstract-num-id 1))
-    (:num num-id 2
-     (:abstract-num-id 1
-      (:lvl-override ilvl 0
-       (:start-override 1))))
-    (:num num-id 3
-     (:abstract-num-id 2))))
+(:STYLE TYPE "character" CUSTOM-STYLE 1 STYLE-ID "mdcode"
+ (:NAME "MD Code" :UI-PRIORITY 1 :Q-FORMAT :R-PR
+  (:NO-PROOF :F-FONTS ASCII "Consolas" :SZ 20 :SHD 1 COLOR "auto" FILL
+   "DCDCDC")))
 ```
+

@@ -81,7 +81,7 @@
     part))
 
 (defun ensure-style-definitions (document)
-  (alexandria:if-let ((sd (style-defintions document)))
+  (alexandria:if-let ((sd (style-definitions document)))
     sd
     (add-style-definitions document)))
 

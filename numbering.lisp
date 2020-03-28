@@ -33,8 +33,8 @@
 	  (:lvl-override ilvl ,ilvl     
 	   (:start-override ,start)))))))))
 
-(defun add-numbering-defintion (numbering-defintions numbering-definition)
-  (let ((numbering (get-first-element-by-tag-name (opc:xml-root numbering-part)
+(defun add-numbering-defintion (numbering-definitions numbering-definition)
+  (let ((numbering (get-first-element-by-tag-name (opc:xml-root numbering-defnitions)
 						  "w:numbering")))
-    (plump:append-child numbering numbering-definitions)))
+    (plump:append-child numbering numbering-definition)))
 

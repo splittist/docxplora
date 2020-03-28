@@ -3,7 +3,8 @@
 (cl:defpackage #:wuss
   (:use #:cl)
   (:export
-   #:compile-style))
+   #:compile-style
+   #:decompile-style))
 
 (cl:in-package #:wuss)
 
@@ -85,11 +86,60 @@
   (:method (tag attrs children)
     (when (oddp (length attrs))
       (setf attrs (cons "val" attrs)))
-    (format t "<w:~A ~{w:~A=\"~A\" ~}>" (frob-form tag) (mapcar #'frob-form attrs))
-    (dolist (child children) (process child))
-    (format t "</w:~A>" (frob-form tag))))
+    (format t "<w:~A ~{w:~A=\"~A\" ~}" (frob-form tag) (mapcar #'frob-form attrs))
+    (if children
+	(progn
+	  (write-string ">")
+	  (dolist (child children) (process child))
+	  (format t "</w:~A>" (frob-form tag)))
+	(write-string "/>"))))
       
 (defun compile-style (style-form)
   (with-output-to-string (s)
     (let ((*standard-output* s))
       (process (pre-process (make-source style-form))))))
+
+(defun to-kebabcase (string)
+  (let ((chars '()))
+    (loop for char across string
+       when (upper-case-p char)
+       do (push #\- chars)
+       do (push (char-upcase char) chars)
+	 finally (return (coerce (nreverse chars) 'string)))))
+	   
+(defun as-keyword (tag-name)
+  (alexandria:make-keyword (de-frob tag-name)))
+
+(defun numberoid (string)
+  (alexandria:if-let ((num (ignore-errors (parse-integer string))))
+    num
+    string))
+
+(defun de-frob (thing)
+  (cond
+    ((serapeum:string^= "w:" thing)
+     (alexandria:ensure-symbol (to-kebabcase (subseq thing 2))))
+    (t
+     (numberoid thing))))
+
+(defun as-attributes (attributes)
+  (let ((result '())
+	(v nil))
+    (alexandria:doplist (key val attributes `(,@v ,@result))
+      (cond ((string= "w:val" key)
+	     (setf v (list (de-frob val))))
+	    (t
+	     (push (de-frob val) result)
+	     (push (de-frob key) result))))))
+
+(defun decompile-style (element)
+  (let ((tag-name (plump:tag-name element))
+	(attributes (alexandria:hash-table-plist (plump:attributes element)))
+	(children (plump:children element)))
+    `(,(as-keyword tag-name)
+       ,@(as-attributes attributes)
+       ,@(serapeum:unsplice
+	  (loop for child across children
+	     appending (decompile-style child))))))
+
+
