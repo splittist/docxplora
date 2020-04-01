@@ -5,30 +5,31 @@
 (defclass document ()
   ((%package :initarg :package :accessor opc-package)))
 
-(defun open-document (pathname)
+;; moved to wml to create wml-documents
+#+(or)(defun open-document (pathname)
   (let ((opc-package (opc:open-package pathname)))
     (make-instance 'document :package opc-package)))
 
-(defun make-document ()
+#+(or)(defun make-document ()
   (let ((opc-package (make-instance 'opc:opc-package)))
     (make-instance 'document :package opc-package)))
 
 (defun save-document (document &optional pathname)
   (opc:save-package (opc-package document) pathname))
 
-(defgeneric get-part-by-name (document name &optional ensure-xml)
-  (:method ((document document) (name string) &optional ensure-xml)
+(defgeneric get-part-by-name (document name &key xml class)
+  (:method ((document document) (name string) &key xml class)
     (let* ((package (opc-package document))
 	   (part (opc:get-part package name)))
-      (if ensure-xml
-	  (opc:ensure-xml part)
-	  part))))
+      (when xml (opc:ensure-xml part))
+      (if class (change-class part class) part))))
     
-(defun main-document (document)
-  (let* ((package (opc-package document))
-	 (rel (first (opc:get-relationships-by-type package (opc:rt "OFFICE_DOCUMENT"))))
-	 (target (opc:uri-merge "/" (opc:target-uri rel))))
-    (get-part-by-name document target t)))
+(defgeneric main-document (document)
+  (:method (document)
+    (let* ((package (opc-package document))
+	   (rel (first (opc:get-relationships-by-type package (opc:rt "OFFICE_DOCUMENT"))))
+	   (target (opc:uri-merge "/" (opc:target-uri rel))))
+      (get-part-by-name document target :xml t))))
 
 (defun document-type (document) ; FIXME - return actual types
   (let ((mdp-ct (opc:content-type (main-document document))))

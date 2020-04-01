@@ -91,19 +91,3 @@
 </wp:inline>
 </w:drawing>"
 	    cx cy name rid cx cy))))
-
-#+(or)
-(defun add-to-md-body (md item)
-  (let* ((root (opc:xml-root md))
-	 (body (first (plump:get-elements-by-tag-name root "w:body")))
-	 (para (plump:make-element body "w:p"))
-	 (run (plump:make-element para "w:r")))
-    (plump:append-child run item)))
-
-#+(or)
-(defun itest ()
-  (let* ((doc (make-document))
-	 (md (add-main-document doc))
-	 (im (make-inline-image md "/home/cabox/workspace/Test/exif-rgb-thumbnail-sony-d700.jpg")))
-    (add-to-md-body md im)
-    (save-document doc "/home/cabox/workspace/pic.docx")))

@@ -26,7 +26,9 @@
     ("w" . "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
     ("w14" . "http://schemas.microsoft.com/office/word/2010/wordml")
     ("w15" . "http://schemas.microsoft.com/office/word/2012/wordml")
+    ("w16cex" . "http://schemas.microsoft.com/office/word/2018/wordml/cex")
     ("w16cid" . "http://schemas.microsoft.com/office/word/2016/wordml/cid")
+    ("w16" . "http://schemas.microsoft.com/office/word/2018/wordml")
     ("w16se" . "http://schemas.microsoft.com/office/word/2015/wordml/symex")
     ("wpg" . "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup")
     ("wpi" . "http://schemas.microsoft.com/office/word/2010/wordprocessingInk")
@@ -34,4 +36,4 @@
     ("wps" . "http://schemas.microsoft.com/office/word/2010/wordprocessingShape")))
 
 (defparameter *md-ignorable*
-  '(("mc:Ignorable" . "w14 w15 w16se w16cid wp14")))
+  '(("mc:Ignorable" . "w14 w15 w16se w16cid w16 w16cex wp14")))

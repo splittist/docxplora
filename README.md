@@ -451,7 +451,7 @@ Returns a list of items in the style accepted by **COMPILE-STYLE** generated fro
 ```lisp
 (:STYLE TYPE "character" CUSTOM-STYLE 1 STYLE-ID "mdcode"
  (:NAME "MD Code" :UI-PRIORITY 1 :Q-FORMAT :R-PR
-  (:NO-PROOF :F-FONTS ASCII "Consolas" :SZ 20 :SHD 1 COLOR "auto" FILL
+  (:NO-PROOF :R-FONTS ASCII "Consolas" :SZ 20 :SHD 1 COLOR "auto" FILL
    "DCDCDC")))
 ```
 

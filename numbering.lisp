@@ -2,11 +2,6 @@
 
 (cl:in-package #:docxplora)
 
-(defun ensure-numbering-definitions (document)
-  (alexandria:if-let ((numbering-definitions (numbering-definitions document)))
-    numbering-definitions
-    (add-numbering-definitions document)))
-
 (defun get-next-num-id (numbering-definitions)
   (let* ((root (opc:xml-root numbering-definitions))
 	 (nums (plump:get-elements-by-tag-name root "w:num"))
@@ -33,8 +28,8 @@
 	  (:lvl-override ilvl ,ilvl     
 	   (:start-override ,start)))))))))
 
-(defun add-numbering-defintion (numbering-definitions numbering-definition)
-  (let ((numbering (get-first-element-by-tag-name (opc:xml-root numbering-defnitions)
+(defun add-numbering-definition (numbering-definitions numbering-definition)
+  (let ((numbering (get-first-element-by-tag-name (opc:xml-root numbering-definitions)
 						  "w:numbering")))
     (plump:append-child numbering numbering-definition)))
 

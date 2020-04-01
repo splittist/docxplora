@@ -4,8 +4,7 @@
 
 (defgeneric add-style (target style)
   (:method ((document document) (style plump-dom:element))
-    (unless (equal "w:style" (plump:tag-name style))
-      (error "Need a \"w:style\" element to add to document; got ~A" style))
+    (assert (tagp  style "w:style") (style) "Need a <w:style>, got ~A")
     (let* ((style-definitions
 	    (or (style-definitions document)
 		(add-style-definitions document)))
@@ -19,6 +18,7 @@
     (alexandria:when-let (style-element (find-style-by-id document style-id))
       (plump:remove-child style-element)))
   (:method ((document document) (style plump:element))
+    (assert (tagp style "w:style") (style) "Need a <w:style>, got ~A")
     (plump:remove-child style)))
 
 (defgeneric find-style-by-id (target style-id &optional include-latent) ; FIXME mixes ids and names
