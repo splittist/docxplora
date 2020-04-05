@@ -5,6 +5,7 @@
   :author "John Q. Splittist <splittist@splittist.com>"
   :license  "MIT"
   :version "0.0.1"
+  :in-order-to ((asdf:test-op (asdf:test-op :docxplora-test)))
   :depends-on (#:alexandria #:uiop #:serapeum
 			    			    
 			    #:zip #:flexi-streams
@@ -39,3 +40,8 @@
 	       (:file "images" :depends-on ("package" "wml"))
 
 	       (:file "docxplora")))
+
+(asdf:defsystem #:docxplora-test
+  :depends-on (#:docxplora #:parachute)
+  :components ((:file "build-tests"))
+  :perform (asdf:test-op (op c) (uiop:symbol-call :parachute :test :test-package)))

@@ -219,3 +219,226 @@
     (let* ((md (main-document document))
 	   (root (opc:xml-root md)))
       (plump:get-elements-by-tag-name root "w:sectPr"))))
+
+;;;;;;;;;;;;;;;;; building
+
+(defun preservep (string) ; FIXME - stop defining this everywhere
+  (or (alexandria:starts-with #\Space string :test #'char=)
+      (alexandria:ends-with #\Space string :test #'char=)))
+
+(defun make-text-element (parent text)
+  (let ((wt (plump:make-element parent "w:t")))
+    (when (preservep text)
+      (setf (plump:attribute wt "xml:space") "preserve"))
+    (plump:make-text-node wt text)
+    wt))
+
+(defun split-text-element (node index)
+  (let* ((text (plump:text node))
+	 (limit (length text)))
+    (assert (<= 0 index limit) (index) "index out of range: ~D" index)
+    (when (zerop index)
+      (return-from split-text-element (values nil node)))
+    (when (= index limit)
+      (return-from split-text-element (values node nil)))
+    (let* ((left (subseq text 0 index))
+	   (left-space (preservep left))
+	   (right (subseq text index)))
+      (setf (plump:text (plump:first-child node)) left)
+      (if left-space
+	  (setf (plump:attribute node "xml:space") "preserve")
+	  (plump:remove-attribute node "xml:space"))
+      (let ((new (make-text-element (plump:make-root) right)))
+	(plump:insert-after node new)
+	(values node new)))))
+
+(defun remove-if/tag (tag sequence)
+  (plump:ensure-child-array
+   (remove-if (alexandria:curry #'string= tag)
+	      sequence
+	      :key #'plump:tag-name)))
+
+(defun remove-if-not/tag (tag sequence)
+  (plump:ensure-child-array
+   (remove-if-not (alexandria:curry #'string= tag)
+		  sequence
+		  :key #'plump:tag-name)))
+
+(defun split-run (run index)
+  (cond ((zerop index) ; the beginning
+	 (values nil run))
+	((= index (text-length run)) ; the end
+	 (values run nil))
+	(t
+	 (multiple-value-bind (child sub-index)
+	     (child-at-index run index)
+	   (let* ((split-text (not (zerop sub-index)))
+		  (child-position (plump:child-position child))
+		  (children (plump:children run))
+		  (left-children
+		   (remove-if/tag "w:rPr" (subseq children 0 child-position)))
+		  (right-children
+		   (remove-if/tag "w:rPr" (subseq children (+ child-position
+							      (if split-text 1 0)))))
+		  (left (plump:make-element (plump:make-root) "w:r"
+					    :children left-children))
+		  (right (plump:make-element (plump:make-root) "w:r"
+					     :children right-children)))
+	     (when split-text
+	       (multiple-value-bind (left-text right-text)
+		   (split-text-element child sub-index)
+		 (plump:append-child left left-text)
+		 (plump:prepend-child right right-text)))
+	     (alexandria:when-let ((rpr (clone-run-properties run)))
+	       (plump:prepend-child left rpr)
+	       (plump:prepend-child right rpr))
+	     (values left right))))))
+
+;; FIXME - make these data-driven
+;; FIXME - w:ins / w:del and other paragraph children
+
+(defun text-length (node &optional (start 0))
+  (+ start
+     (if (typep node 'plump-dom:element)
+	 (serapeum:string-case (plump:tag-name node)
+	   ("w:br" 1) ; FIXME - all breaks?
+	   ("w:cr" 1)
+	   (("w:delInstrText" "w:instrText") 0) ; FIXME - ??
+	   (("w:delText" "w:t") (length (plump:text node)))
+	   ("w:noBreakHyphen" 1)
+	   ;;("w:ptab" ?)
+	   ("w:sym" 1)
+	   ("w:tab" 1)
+       
+	   ("w:r" (loop for child across (plump:children node)
+		     summing (text-length child start)))
+	   ("w:p" (loop for child across (plump:children node)
+		     summing (text-length child start)))
+	   
+	   (t 0))
+	 0)))
+
+(defun to-text (node)
+  (let ((ac '()))
+    (labels
+	((acc (node)
+	   (when (typep node 'plump-dom:element)
+	     (serapeum:string-case (plump:tag-name node)
+	       ("w:br" (push #.(string #\Newline) ac))
+	       ("w:cr" (push #.(string #\Newline) ac))
+	       (("w:delInstrText" "w:instrText") nil)
+	       (("w:delText" "w:t") (push (plump:text node) ac))
+	       ("w:noBreakHyhen" (push #.(string #\-) ac))
+	       ;;("w:ptab" ?)
+	       ("w:sym" (push #.(string #\*) ac)) ;; FIXME - ??
+	       ("w:tab" (push #.(string #\Tab) ac))
+	       
+	       ("w:r" (loop for child across (plump:children node)
+			 do (acc child)))
+	       ("w:p" (loop for child across (plump:children node)
+			 do (acc child))
+		      #+(or)(push #.(string #\Newline) ac)))))) ; no #\Newline
+      (acc node))
+    (serapeum:string-join (nreverse ac))))
+
+(defparameter *run-escape-table* ;; FIXME - don't keep defining this
+  (serapeum:dictq
+   #\< "&lt;"
+   #\> "&gt;"
+   #\" "&quot;"
+   #\' "&apos;"))
+
+(defun run-from-text-preprocess (string)
+  (let ((result '())
+	(text '())
+	(escaped (serapeum:escape string *run-escape-table*)))
+    (loop for char across escaped
+       do (case char
+	    (#\Tab (when text
+		     (push (coerce (nreverse text) 'string) result)
+		     (setf text nil))
+		   (push :tab result))
+	    (#\Newline (when text
+			 (push (coerce (nreverse text) 'string) result)
+			 (setf text nil))
+		       (push :cr result))
+	    (t (push char text)))
+       finally (progn (when text
+			(push (coerce (nreverse text) 'string) result))
+		      (return (nreverse result))))))
+
+(defun run-from-text (string &optional run-properties)
+  (let ((prelist (run-from-text-preprocess string))
+	(run (plump:make-element (plump:make-root) "w:r")))
+    (when run-properties
+      (plump:prepend-child run run-properties))
+    (dolist (item prelist run)
+      (cond
+	((eq :tab item)
+	 (plump:make-element run "w:tab"))
+	((eq :cr item)
+	 (plump:make-element run "w:cr"))
+	((stringp item)
+	 (make-text-element run item))
+	(t (error "Unknown item"))))))
+
+(defun paragraphs-in-document-order (node)
+  (let ((result '()))
+    (plump:traverse
+     node
+     #'(lambda (node) (when (tagp node "w:p") (push node result)))
+     :test #'plump:element-p)
+    (nreverse result)))
+
+(defun tables-in-document-order (node)
+  (let ((result '()))
+    (plump:traverse
+     node
+     #'(lambda (node) (when (tagp node "w:tbl") (push node result)))
+     :test #'plump:element-p)
+    (nreverse result)))
+
+(defun child-at-index (node index)
+  (assert (<= 0 index (text-length node)))
+  (loop with i = 0
+     with prev-i = 0
+     until (> i index)
+     for child across (plump:children node)
+     do (shiftf prev-i i (+ i (text-length child)))
+     finally (return
+	       (if (> index i)
+		 nil
+		 (values child (- index prev-i))))))
+
+(defun clone-run-properties (run)
+  (check-type run plump-dom:element)
+  (assert (tagp run "w:r"))
+  (alexandria:when-let ((rpr (find-child/tag run "w:rPr")))
+    (plump:clone-node rpr t)))
+
+(defun clone-paragraph-properties (paragraph)
+  (check-type paragraph plump-dom:element)
+  (assert (tagp paragraph "w:p"))
+  (alexandria:when-let ((ppr (find-child/tag paragraph "w:pPr")))
+    (plump:clone-node ppr t)))
+
+(defun merge-properties (destination source)
+  (let ((dchildren (plump:children destination))
+	(schildren (plump:children source)))
+    (serapeum:do-each (schild schildren destination)
+      (unless (find (plump:tag-name schild) dchildren :key #'plump:tag-name :test #'string=)
+	(plump:append-child destination (plump:clone-node schild t))))))
+
+(defun paragraph-append-text (paragraph string &optional run-properties)
+  (let ((run (run-from-text string run-properties)))
+    (plump:append-child paragraph run)
+    paragraph))
+
+(defun paragraph-insert-text (paragraph index text &optional run-properties)
+  ;; let new-run run-from-text text run-properties
+  ;; let limit text-length paragraph
+  ;; when = index limit -> append paragraph new-run
+  ;; when zerop index -> prepend [but pPr] paragraph new-run
+  ;; let old-run, sub-idx child-at-index paragraph index
+  ;; when/cond old-run -> left, right = split-run old-run idx
+  ;; replace old-run with left, run, right

@@ -4,7 +4,8 @@
   (:use #:cl)
   (:export
    #:compile-style
-   #:decompile-style))
+   #:decompile-style
+   #:compile-style-to-element))
 
 (cl:in-package #:wuss)
 
@@ -98,6 +99,9 @@
   (with-output-to-string (s)
     (let ((*standard-output* s))
       (process (pre-process (make-source style-form))))))
+
+(defun compile-style-to-element (style-form) ;; FIXME - rename 'style' everywhere
+  (plump:first-child (plump:parse (compile-style style-form))))
 
 (defun to-kebabcase (string)
   (let ((chars '()))

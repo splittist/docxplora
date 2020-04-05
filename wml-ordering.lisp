@@ -41,10 +41,10 @@
             "w:pPrChange"))
 
 (defparameter *rpr-order*
-         #( "w:moveFrom"
-            "w:moveTo"
-            "w:ins"
-            "w:del"
+         #( ;; "w:moveFrom" FIXME - ??
+            ;; "w:moveTo"
+            ;; "w:ins"
+            ;; "w:del"
             "w:rStyle"
             "w:rFonts"
             "w:b"
@@ -269,16 +269,17 @@
 	      #'<
 	      :key (lambda (child)
 		     (or (position (plump:tag-name child) order :test #'string=)
-			 999)))))
+			 999))))
+  element)
 
 (defun spec-order-element (element)
-  (let* ((ordering (assoc (plump:tag-name element) *order-map* :test #'string=)))
+  (let ((ordering (assoc (plump:tag-name element) *order-map* :test #'string=)))
     (if ordering
-	(let ((order (second ordering))
+	(let ((order (symbol-value (second ordering)))
 	      (recurse (third ordering)))
 	  (spec-order-sort element order)
 	  (when recurse
-	    (dolist (child (plump:children element))
+	    (serapeum:do-each (child (plump:children element) element)
 	      (spec-order-element child))))
-	(dolist (child (plump:children element))
+	(serapeum:do-each (child (plump:children element) element)
 	  (spec-order-element child)))))
