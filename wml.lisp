@@ -266,9 +266,9 @@
 
 (defun split-run (run index)
   (cond ((zerop index) ; the beginning
-	 (values nil run))
+	 (values nil (plump:clone-node run t)))
 	((= index (text-length run)) ; the end
-	 (values run nil))
+	 (values (plump:clone-node run t) nil))
 	(t
 	 (multiple-value-bind (child sub-index)
 	     (child-at-index run index)
@@ -341,18 +341,10 @@
       (acc node))
     (serapeum:string-join (nreverse ac))))
 
-(defparameter *run-escape-table* ;; FIXME - don't keep defining this
-  (serapeum:dictq
-   #\< "&lt;"
-   #\> "&gt;"
-   #\" "&quot;"
-   #\' "&apos;"))
-
 (defun run-from-text-preprocess (string)
   (let ((result '())
-	(text '())
-	(escaped (serapeum:escape string *run-escape-table*)))
-    (loop for char across escaped
+	(text '()))
+    (loop for char across string
        do (case char
 	    (#\Tab (when text
 		     (push (coerce (nreverse text) 'string) result)
@@ -370,6 +362,8 @@
 (defun run-from-text (string &optional run-properties)
   (let ((prelist (run-from-text-preprocess string))
 	(run (plump:make-element (plump:make-root) "w:r")))
+    (when (and run-properties (consp run-properties))
+      (setf run-properties (wuss:compile-style-to-element run-properties)))
     (when run-properties
       (plump:prepend-child run run-properties))
     (dolist (item prelist run)
@@ -430,15 +424,32 @@
 	(plump:append-child destination (plump:clone-node schild t))))))
 
 (defun paragraph-append-text (paragraph string &optional run-properties)
+  (when (and run-properties (consp run-properties))
+    (setf run-properties (wuss:compile-style-to-element run-properties)))
   (let ((run (run-from-text string run-properties)))
     (plump:append-child paragraph run)
     paragraph))
 
-(defun paragraph-insert-text (paragraph index text &optional run-properties)
-  ;; let new-run run-from-text text run-properties
-  ;; let limit text-length paragraph
-  ;; when = index limit -> append paragraph new-run
-  ;; when zerop index -> prepend [but pPr] paragraph new-run
-  ;; let old-run, sub-idx child-at-index paragraph index
-  ;; when/cond old-run -> left, right = split-run old-run idx
-  ;; replace old-run with left, run, right
+(defun paragraph-insert-text (paragraph text index &optional run-properties)
+  (let ((limit (text-length paragraph)))
+    (when (= index limit)
+      (return-from paragraph-insert-text (paragraph-append-text paragraph text run-properties)))
+    (when (and run-properties (consp run-properties))
+      (setf run-properties (wuss:compile-style-to-element run-properties)))
+    (multiple-value-bind (run run-idx)
+	(child-at-index paragraph index)
+      (multiple-value-bind (left right)
+	  (split-run run run-idx)
+	(let* ((existing-props (or (and left (clone-run-properties left))
+				   (and right (clone-run-properties right))))
+	       (new-props (if (null run-properties)
+			      existing-props
+			      (if (null existing-props)
+				  run-properties
+				  (merge-properties run-properties existing-props))))
+	       (new-run (run-from-text text new-props)))
+	  (when left (plump:insert-before run left))
+	  (plump:insert-before run new-run)
+	  (when right (plump:insert-after run right))
+	  (plump:remove-child run)
+	  paragraph)))))

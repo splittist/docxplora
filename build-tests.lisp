@@ -295,5 +295,31 @@
 	 1
 	 "ab")
       (string= "<w:r><w:t>a</w:t></w:r>")
-      (string= "<w:r><w:t>b</w:t></w:r>")))
-	
+      (string= "<w:r><w:t>b</w:t></w:r>"))
+    (is-values
+	(split-run-test-helper
+	 4
+	 "ab	cd")
+      (string= "<w:r><w:t>ab</w:t><w:tab/><w:t>c</w:t></w:r>")
+      (string= "<w:r><w:t>d</w:t></w:r>")))
+
+(defun paragraph-insert-text-test-helper (text index &optional run-properties)
+  (let ((paragraph
+	 (plump:first-child
+	  (plump:parse
+	   "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"))))
+    (plump:serialize
+     (docxplora::paragraph-insert-text paragraph text index run-properties)
+     nil)))
+
+(define-test paragraph-insert-text
+  :parent build-suite
+  (is string=
+      "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r><w:r><w:t>foo</w:t></w:r></w:p>"
+      (paragraph-insert-text-test-helper "foo" 10))
+  (is string=
+      "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>foo</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>12345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"
+      (paragraph-insert-text-test-helper "foo" 0))
+  (is string=
+      "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>foo</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"
+      (paragraph-insert-text-test-helper "foo" 2)))
