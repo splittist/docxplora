@@ -453,3 +453,65 @@
 	  (when right (plump:insert-after run right))
 	  (plump:remove-child run)
 	  paragraph)))))
+
+(defun paragraph-delete-text (paragraph index count) ;; FIXME - bookmarks, comment anchors etc.
+  (multiple-value-bind (start-run start-idx) 
+      (child-at-index paragraph index)
+    (multiple-value-bind (end-run end-idx)
+	(child-at-index paragraph (+ index count))
+      (multiple-value-bind (start-left start-rest)
+	  (split-run start-run start-idx)
+	(declare (ignore start-rest))
+	(multiple-value-bind (end-rest end-right)
+	    (split-run end-run end-idx)
+	  (declare (ignore end-rest))
+	  (when start-left (plump:insert-before start-run start-left))
+	  (when end-right (plump:insert-after end-run end-right))
+	  (loop for child = start-run then next
+	       for next = (plump:next-sibling child)
+	     until (eq child end-run)
+	     do (plump:remove-child child))
+	  (plump:remove-child end-run)
+	  paragraph)))))
+
+;; NB following not to be used on elements with non-element children
+;;  such as text-nodes
+(defun attributes= (element1 element2)
+  (let ((attrs1 (plump:attributes element1))
+	(attrs2 (plump:attributes element2)))
+    (when (= (hash-table-count attrs1)
+	     (hash-table-count attrs2))
+      (serapeum:do-hash-table (key value attrs1 t)
+	(unless (equalp (gethash key attrs2) value)
+	  (return nil))))))
+
+(defun children= (element1 element2)
+  (let ((children1 (plump:children element1))
+	(children2 (plump:children element2)))
+    (when
+	(= (length children1)
+	   (length children2))
+      (serapeum:do-each (child1 children1 t)
+	(let ((child2 (find (plump:tag-name child1) children2
+			    :key #'plump:tag-name
+			    :test #'string=)))
+	  (unless (and child2
+		       (attributes= child1 child2)
+		       (children= child1 child2))
+	    (return-from children= nil)))))))
+
+(defun element= (element1 element2)
+  (and (attributes= element1 element2)
+       (children= element1 element2)))
+
+(defun element-subsetp (element1 element2)
+  (let ((children1 (plump:children element1))
+	(children2 (plump:children element2)))
+    (serapeum:do-each (child1 children1 t)
+      (let ((child2 (find (plump:tag-name child1) children2
+			  :key #'plump:tag-name
+			  :test #'string=)))
+	(unless (and child2
+		     (attributes= child1 child2)
+		     (element-subsetp child1 child2)) ;; FIXME - ??
+	  (return-from element-subsetp nil))))))

@@ -323,3 +323,36 @@
   (is string=
       "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>foo</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"
       (paragraph-insert-text-test-helper "foo" 2)))
+
+(defun paragraph-delete-text-test-helper (index count)
+  (let ((paragraph
+	 (plump:first-child
+	  (plump:parse
+	   "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"))))
+    (plump:serialize
+     (docxplora::paragraph-delete-text paragraph index count)
+     nil)))
+
+(defun paragraph-delete-text-test-helper2 (index count)
+  (let ((paragraph
+	 (plump:first-child
+	  (plump:parse
+	   "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12345</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>ABCDE</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"))))
+    (plump:serialize
+     (docxplora::paragraph-delete-text paragraph index count)
+     nil)))
+
+(define-test paragraph-delete-text
+  :parent build-suite
+  (is string=
+      "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>2345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"
+      (paragraph-delete-text-test-helper 0 1))
+  (is string=
+      "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>123</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>890</w:t></w:r></w:p>"
+      (paragraph-delete-text-test-helper 3 4))
+  (is string=
+      "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>123</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>890</w:t></w:r></w:p>"
+      (paragraph-delete-text-test-helper2 3 9))
+  (is string=
+      "<w:p/>"
+      (paragraph-delete-text-test-helper2 0 15)))
