@@ -448,10 +448,10 @@
 				  run-properties
 				  (merge-properties run-properties existing-props))))
 	       (new-run (run-from-text text new-props)))
-	  (when left (plump:insert-before run left))
-	  (plump:insert-before run new-run)
-	  (when right (plump:insert-after run right))
-	  (plump:remove-child run)
+	  (FORMAT T "~A : ~A : ~A~%" left new-run right) ;; DEBUG
+	  (plump:replace-child run new-run)
+	  (when left (plump:insert-before new-run left))
+	  (when right (plump:insert-after new-run right))
 	  paragraph)))))
 
 (defun paragraph-delete-text (paragraph index count) ;; FIXME - bookmarks, comment anchors etc.
@@ -515,3 +515,43 @@
 		     (attributes= child1 child2)
 		     (element-subsetp child1 child2)) ;; FIXME - ??
 	  (return-from element-subsetp nil))))))
+
+(defun paragraph-all-matches (paragraph regex &key start end match-properties
+						(match-properties-test #'element-subsetp))
+  (let* ((text (to-text paragraph))
+	 (matches (cl-ppcre:all-matches regex text :start start :end end)))
+    (when (and match-properties (consp match-properties))
+      (setf match-properties (wuss:compile-style-to-element match-properties)))
+    (if match-properties ;; FIXME - test
+	(loop with result = '()
+	   for (start end) on matches by #'cddr
+	   for start-run = (child-at-index paragraph start)
+	   for end-run = (child-at-index paragraph end)
+	   for start-pos = (plump:child-position start-run)
+	   for end-pos = (plump:child-position end-run)
+	   when (loop for pos from start-pos to end-pos
+		   for run = (aref (plump:family start-run) pos)
+		   always (funcall match-properties-test
+				   match-properties
+				   (find-child/tag run "w:rPr")))
+	   do (push start result)
+	     (push end result)
+	   finally (return (nreverse result)))
+	matches)))
+
+(defun paragraph-regex-replace-all (paragraph regex replacement
+				    &key start end preserve-case simple-calls
+				      new-properties match-properties
+				      (match-properties-test #'element-subsetp))
+  (let* ((text (to-text paragraph))
+	 (matches (paragraph-all-matches paragraph regex :start start :end end
+					:match-properties match-properties
+					:match-properties-test match-properties-test)))
+    (loop for (match-end match-start) on (reverse matches) by #'cddr
+       do (let* ((match (subseq text match-start match-end))
+		 (replace (cl-ppcre:regex-replace regex match replacement
+						  :preserve-case preserve-case
+						  :simple-calls simple-calls)))
+	    (paragraph-delete-text paragraph match-start (- match-end match-start))
+	    (paragraph-insert-text paragraph replace match-start new-properties))))
+  paragraph)

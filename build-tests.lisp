@@ -312,6 +312,15 @@
      (docxplora::paragraph-insert-text paragraph text index run-properties)
      nil)))
 
+(defun paragraph-insert-text-test-helper2 (text index &optional run-properties)
+  (let ((paragraph
+	 (plump:first-child
+	  (plump:parse
+	   "<w:p><w:r><w:t>1</w:t><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/><w:t>567890</w:t></w:r></w:p>"))))
+    (plump:serialize
+     (docxplora::paragraph-insert-text paragraph text index run-properties)
+     nil)))
+
 (define-test paragraph-insert-text
   :parent build-suite
   (is string=
@@ -322,7 +331,10 @@
       (paragraph-insert-text-test-helper "foo" 0))
   (is string=
       "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>foo</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>345</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>67890</w:t></w:r></w:p>"
-      (paragraph-insert-text-test-helper "foo" 2)))
+      (paragraph-insert-text-test-helper "foo" 2))
+  (is string=
+      "<w:p><w:r><w:t>1</w:t></w:r><w:r><w:t>FOO</w:t></w:r><w:r><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/><w:t>567890</w:t></w:r></w:p>"
+      (paragraph-insert-text-test-helper2 "FOO" 1))) 
 
 (defun paragraph-delete-text-test-helper (index count)
   (let ((paragraph
@@ -356,3 +368,75 @@
   (is string=
       "<w:p/>"
       (paragraph-delete-text-test-helper2 0 15)))
+
+(defun paragraph-all-matches-test-helper (regex &key start end
+						  match-properties
+						  (match-properties-test #'docxplora::element-subsetp))
+  (let ((paragraph
+	 (plump:first-child
+	  (plump:parse
+	   "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>12345</w:t><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>567890</w:t></w:r></w:p>"))))
+    (docxplora::paragraph-all-matches paragraph regex :start start :end end
+				      :match-properties match-properties
+				      :match-properties-test match-properties-test)))
+
+(define-test paragraph-all-matches
+  :parent build-suite
+  (is equal
+      '(0 3)
+      (paragraph-all-matches-test-helper "123"))
+  (is equal
+      '(4 5 12 13)
+      (paragraph-all-matches-test-helper "5"))
+  (is equal
+      '(12 13)
+      (paragraph-all-matches-test-helper "5" :start 6))
+  (is equal
+      '(0 5 12 18)
+      (paragraph-all-matches-test-helper "\\d+"))
+  (is equal
+      '(3 7)
+      (paragraph-all-matches-test-helper "4.*a"))
+  (is equal
+      '(11 12)
+      (paragraph-all-matches-test-helper "\\n"))
+  (is equal
+      '(4 5)
+      (paragraph-all-matches-test-helper "5" :match-properties '(:r-pr (:b))))
+  (is equal
+      '(12 13)
+      (paragraph-all-matches-test-helper "5" :match-properties (wuss:compile-style-to-element
+								'(:r-pr (:i))))))
+
+(defun paragraph-regex-replace-all-test-helper (regex replacement
+						&key start end preserve-case simple-calls
+						  new-properties match-properties
+						  match-properties-test)
+  (let ((paragraph
+	 (plump:first-child
+	  (plump:parse
+	   "<w:p><w:r><w:t>12345</w:t><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/><w:t>567890</w:t></w:r></w:p>"))))
+    (plump:serialize
+     (docxplora::paragraph-regex-replace-all paragraph regex replacement
+					     :start start :end end
+					     :preserve-case preserve-case
+					     :simple-calls simple-calls
+					     :new-properties new-properties
+					     :match-properties match-properties
+					     :match-properties-test match-properties-test)
+     nil)))
+
+(define-test paragraph-regex-replace-all
+  :parent build-suite
+  (is string=
+      "<w:p><w:r><w:t>XXX</w:t></w:r><w:r><w:t>45</w:t><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/><w:t>567890</w:t></w:r></w:p>"
+      (paragraph-regex-replace-all-test-helper "123" "XXX"))
+  (is string=
+      "<w:p><w:r><w:t>FOO</w:t></w:r><w:r><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/></w:r><w:r><w:t>FOO</w:t></w:r></w:p>"
+      (paragraph-regex-replace-all-test-helper "\\d+" "FOO"))
+  (is string=
+      "<w:p><w:r><w:t>12345</w:t></w:r><w:r><w:t>TAB</w:t></w:r><w:r><w:t>abcde</w:t><w:cr/><w:t>567890</w:t></w:r></w:p>"
+      (paragraph-regex-replace-all-test-helper "\\t" "TAB"))
+  (is string=
+      "<w:p><w:r><w:t>1</w:t></w:r><w:r><w:t>FOO</w:t></w:r><w:r><w:tab/></w:r><w:r><w:t>abcde</w:t><w:cr/></w:r><w:r><w:t>FOO</w:t></w:r><w:r><w:t>67890</w:t></w:r></w:p>"
+      (paragraph-regex-replace-all-test-helper "[2-5]+" "FOO")))

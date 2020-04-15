@@ -10,6 +10,7 @@
 			    			    
 			    #:zip #:flexi-streams
 			    #:plump #:lquery
+			    #:cl-ppcre
 
 			    #:wuss
 			    #:recolor
