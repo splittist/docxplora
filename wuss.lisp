@@ -56,7 +56,7 @@
     (null nil)
     (symbol (to-camelcase form))
     (string form)
-    (t (princ-to-string form))))
+    (t (princ-to-string form)))) ; FIXME (princ-to-string (if (eq form t) "true" form))
 
 (defun slurp-items (source)
   (let ((attrs '())
