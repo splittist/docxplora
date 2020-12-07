@@ -35,10 +35,12 @@
 	       (:file "wml-namespaces" :depends-on ("package"))
 	       (:file "wml" :depends-on ("package" "ooxml" "utils" "wml-namespaces"))
 
+	       (:file "tables" :depends-on ("package" "wml"))
 	       (:file "styles" :depends-on ("package" "wml"))
 	       (:file "numbering" :depends-on ("package" "wml"))
 	       (:file "hyperlinks" :depends-on ("package" "wml"))
 	       (:file "images" :depends-on ("package" "wml"))
+               (:file "comments" :depends-on ("package" "wml"))
 
 	       (:file "docxplora")))
 

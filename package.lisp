@@ -87,6 +87,12 @@
    #:ensure-numbering-definitions
    #:make-numbering-start-override
 
+   #:get-comment-by-id
+   #:commend-id
+   #:comment-author
+   #:comment-initials
+   #:comment-date
+   
    #:find-child/tag
    #:find-children/tag
    #:ensure-child/tag
