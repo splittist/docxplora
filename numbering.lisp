@@ -2,6 +2,88 @@
 
 (cl:in-package #:docxplora)
 
+(defgeneric abstract-numbering-definitions (target)
+  (:method ((numbering-definitions numbering-definitions))
+    (plump:get-elements-by-tag-name (opc:xml-root numbering-definitions) "w:abstractNum"))
+  (:method ((document document))
+    (alexandria:when-let ((numbering-definitions (numbering-definitions document)))
+      (abstract-numbering-definitions numbering-definitions))))
+
+(defun abstract-numbering-definition-id (abstract-num)
+  (plump:attribute abstract-num "w:abstractNumId"))
+
+(defun abstract-numbering-definition-style-reference (abstract-num)
+  (find-child/tag/val abstract-num "w:numStyleLink"))
+
+(defun abstract-numbering-definition-style-link (abstract-num)
+  (find-child/tag/val abstract-num "w:styleLink"))
+
+(defgeneric numbering-definition-instances (target)
+  (:method ((numbering-definitions numbering-definitions))
+    (plump:get-elements-by-tag-name (opc:xml-root numbering-definitions) "w:num"))
+  (:method ((document document))
+    (alexandria:when-let ((numbering-definitions (numbering-definitions document)))
+      (numbering-definition-instances numbering-definitions))))
+
+(defun numbering-definition-instance-id (num)
+  (plump:attribute num "w:numId"))
+
+(defun abstract-numbering-definition-reference (num)
+  (find-child/tag/val num "w:abstractNumId"))
+
+(defun numbering-level-definition-overrides (num)
+  (plump:get-elements-by-tag-name num "w:lvlOverride"))
+
+(defun numbering-level-definition-override-id (lvl-override)
+  (plump:attribute lvl-override "w:ilvl"))
+
+(defun numbering-level-definition-override-start (lvl-override)
+  (alexandria:when-let
+      ((start-override
+        (find-child/tag/val lvl-override "w:startOverride")))
+    (parse-integer start-override)))
+
+(defun numbering-level-reference (paragraph)
+  (serapeum:and-let*
+   ((ppr (find-child/tag paragraph "w:pPr"))
+    (numpr (find-child/tag ppr "w:numPr")))
+   (find-child/tag/val numpr "w:ilvl")))
+
+(defun numbering-definition-instance-reference (paragraph)
+  (serapeum:and-let*
+   ((ppr (find-child/tag paragraph "w:pPr"))
+    (numpr (find-child/tag ppr "w:numPr")))
+   (find-child/tag/val numpr "w:numId")))
+
+(defun numbering-level-definitions (abstract-num)
+  (plump:get-elements-by-tag-name abstract-num "w:lvl"))
+
+(defun numbering-level-definition-ilvl (lvl)
+  (plump:attribute numbering-level-definition "w:ilvl"))
+
+(defun numbering-level-definition-is-legal (lvl)
+  (when (find-child/tag numbering-level-definition "w:isLgl"))) ; FIXME check 17.17.4 boolean
+
+(defun numbering-level-definition-restart (lvl)
+  (alexandria:when-let ((restart (find-child/tag/val lvl "w:lvlRestart")))
+    (parse-integer restart)))
+
+(defun numbering-level-definition-text (lvl)
+  (find-child/tag/val lvl "w:lvlText")) ; FIXME null
+
+(defun numbering-level-definition-format (lvl)
+  (or (find-child/tag/val lvl "w:numFmt")
+      "decimal")) ; FIXME custom format
+
+(defun numbering-level-definition-paragraph-style (lvl)
+  (find-child/tag/val lvl "w:pStyle"))
+
+(defun numbering-level-definition-start (lvl)
+  (alexandria:when-let ((start (find-child/tag/val lvl "w:start")))
+    (parse-integer start)))
+
+
+
 (defun get-next-num-id (numbering-definitions)
   (let* ((root (opc:xml-root numbering-definitions))
 	 (nums (plump:get-elements-by-tag-name root "w:num"))
@@ -55,6 +137,19 @@
 		 abstract-nums
 		 :key (alexandria:rcurry #'plump:attribute "w:abstractNumId"))))))
 
+(defgeneric find-abstract-num-by-stylelink (target id)
+  (:method ((document document) (id string))
+    (alexandria:when-let ((numbering-definitions (numbering-definitions document)))
+      (let ((abstract-nums (plump:get-elements-by-tag-name (opc:xml-root numbering-definitions)
+                                                           "w:abstractNum")))
+        (find-if (alexandria:curry #'string= id)
+                 abstract-nums
+                 :key (alexandria:rcurry #'find-child/tag/val "w:styleLink"))))))
+
+(defun find-stylelink (abstract-num)
+  (alexandria:when-let ((numstylelink (find-child/tag abstract-num "w:numStyleLink")))
+    (plump:attribute numstylelink "w:val")))
+
 (defun find-override (num ilvl)
   (find-if (alexandria:curry #'string= ilvl)
 	   (plump:get-elements-by-tag-name num "w:lvlOverride")
@@ -82,11 +177,7 @@
 
 (defmethod print-object ((object list-info) stream)
   (print-unreadable-object (object stream :type t :identity t)
-    (if (para-abstract-num object)
-	(format stream "~A / ~A"
-		(plump:attribute (para-abstract-num object) "w:abstractNumId")
-		(plump:attribute (para-ilvl object) "w:ilvl"))
-	(format stream "~A" (style-id object)))))
+    (format stream "~A" (style-id object))))
 
 (defgeneric list-num (object)
   (:method ((object list-info))
@@ -98,8 +189,9 @@
     (with-accessors ((para-ilvl para-ilvl)
 		     (style-ilvl style-ilvl))
 	object
-      (or (and para-ilvl (parse-integer (plump:attribute para-ilvl "w:ilvl")))
-	  (and style-ilvl (parse-integer (plump:attribute style-ilvl "w:ilvl")))))))
+      (let ((ilvl (or (and para-ilvl (plump:attribute para-ilvl "w:ilvl"))
+                      (and style-ilvl (plump:attribute style-ilvl "w:ilvl")))))
+        (when ilvl (parse-integer ilvl))))))
 
 (defgeneric list-start (object)
   (:method ((object list-info))
@@ -152,7 +244,80 @@
       (parse-integer
        (find-child/tag/val (para-override object) "w:startOverride")))))
 
+(defun paragraph-style-id (paragraph)
+  (alexandria:when-let* ((ppr (find-child/tag paragraph "w:pPr")))
+    (find-child/tag/val ppr "w:pStyle")))
+
+(defun paragraph-num-id/ilvl (paragraph)
+  (serapeum:and-let*
+      ((ppr (find-child/tag paragraph "w:pPr"))
+       (numpr (find-child/tag ppr "w:numPr")))
+    (values
+     (find-child/tag/val numpr "w:numId")
+     (find-child/tag numpr "w:ilvl"))))
+
+(defun style-definition->nums (document style-definition)
+  (let (style-num style-abstract-num)
+    (serapeum:and-let*
+        ((ppr (find-child/tag style-definition "w:pPr"))
+         (npr (find-child/tag ppr "w:numPr"))
+         (numid (find-child/tag/val npr "w:numId"))
+         (num (find-num-by-id document numid))
+         (abstract-num (find-abstract-num-by-id
+                        document
+                        (find-child/tag/val num "w:abstractNumId"))))
+      (setf style-num num
+            style-abstract-num abstract-num))
+    (values style-num style-abstract-num)))
+
 (defun make-paragraph-list-info (document paragraph)
+  (let (sid sn san sl pn pan pl or)
+    (setf sid (paragraph-style-id paragraph))
+    (when sid
+      (let ((style-definition (find-style-by-id document sid)))
+        (multiple-value-bind (style-num style-abstract-num)
+            (style-definition->nums document style-definition)
+          (setf sn style-num
+                san style-abstract-num)
+          (when style-abstract-num
+            (setf sl (find-lvl-by-style-id style-abstract-num sid))))
+        (multiple-value-bind (para-num-id para-ilvl)
+            (paragraph-num-id/ilvl paragraph)
+          (setf pl para-ilvl)
+          (when para-num-id
+            (setf pn (find-num-by-id document para-num-id)))
+          (when pn
+            (let ((para-abstract-num (find-abstract-num-by-id
+                                      document
+                                      (find-child/tag/val pn "w:abstractNumId"))))
+              (alexandria:when-let ((stylelink (find-stylelink para-abstract-num)))
+                (setf para-abstract-num (find-abstract-num-by-stylelink
+                                         document
+                                         stylelink)))
+              (setf pan para-abstract-num
+                    pn (find-override pn para-ilvl)))))))
+    (make-instance 'list-info
+		   :style-id sid
+		   :style-num sn
+		   :style-abstract-num san
+		   :style-ilvl sl
+		   :para-num pn
+		   :para-abstract-num pan
+		   :para-ilvl pl
+		   :para-override or)))
+
+(defun print-li (li)
+  (format t "~%style-id: ~A~%style-num: ~A~%stye-abstract-num: ~A~%style-ilvl: ~A~%para-num: ~A~%para-abstract-num: ~A~%para-ilvl: ~A~%para-override: ~A~%"
+          (style-id li)
+          (style-num li)
+          (style-abstract-num li)
+          (style-ilvl li)
+          (para-num li)
+          (para-abstract-num li)
+          (para-ilvl li)
+          (para-override li)))
+
+#+(or)(defun make-paragraph-list-info (document paragraph)
   (let (sid sn san sl pn pan pl or)
     (serapeum:and-let*
 	((ppr (find-child/tag paragraph "w:pPr"))

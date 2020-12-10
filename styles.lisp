@@ -35,6 +35,31 @@
 			  (plump:get-elements-by-tag-name styles "w:lsdException")
 			  :key (alexandria:rcurry #'plump:attribute "w:name"))))))))
 
+(defgeneric style-definitions-styles (target)
+  (:method ((style-definitions style-definitions))
+    (plump:get-elements-by-tag-name (opc:xml-root style-definitions) "w:style"))
+  (:method ((document document))
+    (alexandria:when-let ((style-definitions (style-definitions document)))
+      (style-definitions-styles style-definitions))))
+
+(defun style-type (style)
+  (plump:attribute style "w:type"))
+
+(defun style-numbering-style-p (style)
+  (equal "numbering" (style-type style)))
+
+(defun style-paragraph-style-p (style)
+  (equal "paragraph" (style-type style)))
+
+(defun style-character-style-p (style)
+  (equal "character" (style-type style)))
+
+(defun style-table-style-p (style)
+  (equal "table" (style-type style)))
+
+(defun style-id (style)
+  (plump:attribute style "w:styleId"))
+
 #||
 
 Style elements:
