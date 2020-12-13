@@ -42,6 +42,12 @@
     (alexandria:when-let ((style-definitions (style-definitions document)))
       (style-definitions-styles style-definitions))))
 
+(defun find-style-definition-by-id (target style-id)
+  (let ((styles (style-definitions-styles target)))
+    (find-if (alexandria:curry #'string= style-id)
+             styles
+             :key #'style-id)))
+
 (defun style-type (style)
   (plump:attribute style "w:type"))
 
@@ -59,6 +65,17 @@
 
 (defun style-id (style)
   (plump:attribute style "w:styleId"))
+
+(defun referenced-paragraph-style (paragraph)
+  (alexandria:when-let*
+      ((ppr (find-child/tag paragraph "w:pPr")))
+    (find-child/tag/val ppr "w:pStyle")))
+
+(defun style-numbering-definition-instance-reference (style)
+  (serapeum:and-let*
+      ((ppr (find-child/tag style "w:pPr"))
+       (numpr (find-child/tag ppr "w:numPr")))
+    (find-child/tag/val numpr "w:numId")))
 
 #||
 

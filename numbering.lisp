@@ -2,6 +2,64 @@
 
 (cl:in-package #:docxplora)
 
+#|
+
+# How numbering works
+
+List item style hierarchy (from most to least specific):
+
+* direct formatting (within numbering properties inside paragraph properties)
+   * numbering-definition-instance-reference
+   * numbering-level-reference
+* paragraph style (within paragraph properties)
+   * referenced-paragraph-style -> style-id
+   * that style has style-numbering-definition-instance-reference -> numId
+   * find numbering-definition-instance with that numId, then
+   * find related abstract-numbering-definition, then
+   * find numbering-level-definition with matching numbering-level-definition-paragraph-style
+
+|#
+
+(defun find-numbering-definition-instance-by-id (target id)
+  (let ((nums (numbering-definition-instances target)))
+    (find-if (alexandria:curry #'string= id)
+             nums
+             :key #'numbering-definition-instance-id)))
+
+(defun find-abstract-numbering-definition-by-id (target id)
+  (let ((abstract-nums (abstract-numbering-definitions target)))
+    (find-if (alexandria:curry #'string= id)
+             abstract-nums
+             :key #'abstract-numbering-definition-id)))
+
+(defun find-numbering-level-definition-by-level (abstract-num ilvl)
+  (find-if (alexandria:curry #'string= ilvl)
+           (numbering-level-definitions abstract-num)
+           :key #'numbering-level-definition-ilvl))
+
+(defun find-numbering-level-definition-by-style (abstract-num style-id)
+  (find-if (alexandria:curry #'string= style-id)
+           (numbering-level-definitions abstract-num)
+           :key #'numbering-level-definition-paragraph-style))
+
+(defun applicable-numbering-level-definition (document paragraph)
+  (alexandria:if-let ((numid (numbering-definition-instance-reference paragraph)))
+    (let* ((ilvl (numbering-level-reference paragraph))
+           (num (find-numbering-definition-instance-by-id document numid))
+           (abstract-num-id (abstract-numbering-definition-reference num))
+           (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id))
+           (lvl (find-numbering-level-definition-by-level abstract-num ilvl))) ; FIXME override
+      lvl)
+    (serapeum:and-let*
+        ((style-id (referenced-paragraph-style paragraph)) ; FIXME inheritance?
+         (style (find-style-definition-by-id document style-id))
+         (numid (style-numbering-definition-instance-reference style))
+         (num (find-numbering-definition-instance-by-id document numid))
+         (abstract-num-id (abstract-numbering-definition-reference num))
+         (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id))
+         (lvl (find-numbering-level-definition-by-style abstract-num style-id)))
+      lvl)))
+
 (defgeneric abstract-numbering-definitions (target)
   (:method ((numbering-definitions numbering-definitions))
     (plump:get-elements-by-tag-name (opc:xml-root numbering-definitions) "w:abstractNum"))
