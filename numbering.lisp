@@ -82,7 +82,11 @@
   (alexandria:when-let ((start (find-child/tag/val lvl "w:start")))
     (parse-integer start)))
 
+(defun effective-numbering-definition (document paragraph)
+  
 
+
+    
 
 (defun get-next-num-id (numbering-definitions)
   (let* ((root (opc:xml-root numbering-definitions))
@@ -164,7 +168,7 @@
   (find-if (alexandria:curry #'string= style-id)
 	   (plump:get-elements-by-tag-name abstract-num "w:lvl")
 	   :key (alexandria:rcurry #'find-child/tag/val "w:pStyle")))
-
+#|
 (defclass list-info ()
   ((%style-id :initarg :style-id :initform nil :reader style-id)
    (%style-num :initarg :style-num :initform nil :reader style-num)
@@ -480,3 +484,4 @@
 			(gethash list-num count-dict))))))))
 	     list-infos)))
 
+|#
