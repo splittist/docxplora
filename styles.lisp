@@ -74,8 +74,22 @@
 (defun style-numbering-definition-instance-reference (style)
   (serapeum:and-let*
       ((ppr (find-child/tag style "w:pPr"))
-       (numpr (find-child/tag ppr "w:numPr")))
-    (find-child/tag/val numpr "w:numId")))
+       (numpr (find-child/tag ppr "w:numPr"))
+       (numid (find-child/tag/val numpr "w:numId")))
+    numid))
+
+(defun style-parent-style-id (style)
+  (find-child/tag/val style "w:basedOn"))
+
+(defun applicable-style-numbering-definition-instance-reference (document style)
+  (do* ((numid (style-numbering-definition-instance-reference style)
+               (style-numbering-definition-instance-reference
+                (find-style-definition-by-id document parent)))
+        (parent (style-parent-style-id style)
+                (style-parent-style-id
+                 (find-style-definition-by-id document parent))))
+       ((or numid (null parent))
+        numid)))
 
 #||
 

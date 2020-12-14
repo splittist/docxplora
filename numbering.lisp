@@ -42,23 +42,52 @@ List item style hierarchy (from most to least specific):
            (numbering-level-definitions abstract-num)
            :key #'numbering-level-definition-paragraph-style))
 
-(defun applicable-numbering-level-definition (document paragraph)
-  (alexandria:if-let ((numid (numbering-definition-instance-reference paragraph)))
-    (let* ((ilvl (numbering-level-reference paragraph))
-           (num (find-numbering-definition-instance-by-id document numid))
-           (abstract-num-id (abstract-numbering-definition-reference num))
-           (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id))
-           (lvl (find-numbering-level-definition-by-level abstract-num ilvl))) ; FIXME override
-      lvl)
-    (serapeum:and-let*
-        ((style-id (referenced-paragraph-style paragraph)) ; FIXME inheritance?
-         (style (find-style-definition-by-id document style-id))
-         (numid (style-numbering-definition-instance-reference style))
-         (num (find-numbering-definition-instance-by-id document numid))
+(defun applicable-numbering-level-definition-by-style-id (document style-id ilvl)
+  (let* ((style (find-style-definition-by-id document style-id))
+         (numid (applicable-style-numbering-definition-instance-reference document style)))
+    (when numid
+      (let* ((num (find-numbering-definition-instance-by-id document numid))
+             (abstract-num-id (abstract-numbering-definition-reference num))
+             (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id))
+             (numbering-style-reference
+              (abstract-numbering-definition-style-reference abstract-num)))
+        (when numbering-style-reference
+          (setf abstract-num
+                (find-abstract-numbering-definition-by-style-reference
+                 document
+                 numbering-style-reference)))
+        (values
+         (if ilvl
+             (let ((override (find-numbering-level-definition-override-by-ilvl num ilvl))) ; FIXME
+               (or override
+                   (find-numbering-level-definition-by-level abstract-num ilvl)))
+             (find-numbering-level-definition-by-style abstract-num style-id))
+         num)))))
+
+(defun find-numbering-level-definition-override-by-ilvl (num ilvl)
+  (find-if (alexandria:curry #'string= ilvl)
+           (numbering-level-definition-overrides num)
+           :key #'numbering-level-definition-override-id))
+
+(defun applicable-numbering-level-definition-by-numid/ilvl (document numid ilvl)
+  (let* ((num (find-numbering-definition-instance-by-id document numid))
          (abstract-num-id (abstract-numbering-definition-reference num))
          (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id))
-         (lvl (find-numbering-level-definition-by-style abstract-num style-id)))
-      lvl)))
+         (override (find-numbering-level-definition-override-by-ilvl num ilvl)))
+    (values
+     (or override
+         (find-numbering-level-definition-by-level abstract-num ilvl))
+     num)))
+
+(defun applicable-numbering-level-definition (document paragraph)
+  (let ((numid (numbering-definition-instance-reference paragraph)))
+    (if (and numid (string/= "0" numid)) ; 17.9.18 v 17.3.1.19
+        (let ((ilvl (numbering-level-reference paragraph)))
+          (applicable-numbering-level-definition-by-numid/ilvl document numid ilvl))
+        (alexandria:when-let ((style-id (referenced-paragraph-style paragraph)))
+          (let* ((style (find-style-definition-by-id document style-id))
+                 (ilvl (numbering-level-reference style)))
+            (applicable-numbering-level-definition-by-style-id document style-id ilvl))))))
 
 (defgeneric abstract-numbering-definitions (target)
   (:method ((numbering-definitions numbering-definitions))
@@ -72,6 +101,11 @@ List item style hierarchy (from most to least specific):
 
 (defun abstract-numbering-definition-style-reference (abstract-num)
   (find-child/tag/val abstract-num "w:numStyleLink"))
+
+(defun find-abstract-numbering-definition-by-style-reference (target id)
+  (let* ((style (find-style-definition-by-id target id))
+         (numid (style-numbering-definition-instance-reference style)))
+    (find-abstract-numbering-definition-by-id target numid)))
 
 (defun abstract-numbering-definition-style-link (abstract-num)
   (find-child/tag/val abstract-num "w:styleLink"))
@@ -105,7 +139,7 @@ List item style hierarchy (from most to least specific):
   (serapeum:and-let*
    ((ppr (find-child/tag paragraph "w:pPr"))
     (numpr (find-child/tag ppr "w:numPr")))
-   (find-child/tag/val numpr "w:ilvl")))
+    (find-child/tag/val numpr "w:ilvl")))
 
 (defun numbering-definition-instance-reference (paragraph)
   (serapeum:and-let*
@@ -116,10 +150,10 @@ List item style hierarchy (from most to least specific):
 (defun numbering-level-definitions (abstract-num)
   (plump:get-elements-by-tag-name abstract-num "w:lvl"))
 
-(defun numbering-level-definition-ilvl (lvl)
+(defun numbering-level-definition-ilvl (numbering-level-definition)
   (plump:attribute numbering-level-definition "w:ilvl"))
 
-(defun numbering-level-definition-is-legal (lvl)
+(defun numbering-level-definition-is-legal (numbering-level-definition)
   (when (find-child/tag numbering-level-definition "w:isLgl"))) ; FIXME check 17.17.4 boolean
 
 (defun numbering-level-definition-restart (lvl)
@@ -140,11 +174,7 @@ List item style hierarchy (from most to least specific):
   (alexandria:when-let ((start (find-child/tag/val lvl "w:start")))
     (parse-integer start)))
 
-(defun effective-numbering-definition (document paragraph)
-  
-
-
-    
+;;;;
 
 (defun get-next-num-id (numbering-definitions)
   (let* ((root (opc:xml-root numbering-definitions))
@@ -177,10 +207,14 @@ List item style hierarchy (from most to least specific):
 						  "w:numbering")))
     (plump:append-child numbering numbering-definition)))
 
+;;;;
+
 (defun find-child/tag/val (root tag)
   (alexandria:when-let ((element (find-child/tag root tag)))
     (plump:attribute element "w:val")))
 
+;;;;
+#|
 (defgeneric find-num-by-id (target numid)
   (:method ((document document) (numid string))
     (alexandria:when-let ((numbering-definitions (numbering-definitions document)))
@@ -226,6 +260,8 @@ List item style hierarchy (from most to least specific):
   (find-if (alexandria:curry #'string= style-id)
 	   (plump:get-elements-by-tag-name abstract-num "w:lvl")
 	   :key (alexandria:rcurry #'find-child/tag/val "w:pStyle")))
+|#
+
 #|
 (defclass list-info ()
   ((%style-id :initarg :style-id :initform nil :reader style-id)
@@ -418,6 +454,7 @@ List item style hierarchy (from most to least specific):
 		   :para-abstract-num pan
 		   :para-ilvl pl
 		   :para-override or)))
+|#
 
 (defun format-number (format number)
   (funcall (second (assoc format *numbering-formats* :test #'string=)) number))
@@ -468,7 +505,7 @@ List item style hierarchy (from most to least specific):
 			    ((serapeum:string$= "1" cardinal)  "st")
 			    ((serapeum:string$= "2" cardinal)  "nd")
 			    ((serapeum:string$= "3" cardinal)  "rd")
-			    (t                        "th"))))
+			    (t                                 "th"))))
 		    (format nil "~A~A" cardinal suffix))))
     ("ordinalText" ,(lambda (num) ;; FIXME - lang
 		      (format nil "~@(~:R~)" num)))
@@ -481,6 +518,7 @@ List item style hierarchy (from most to least specific):
     ("upperRoman" ,(lambda (num)
 		     (format nil "~@R" num)))))
 
+#|
 (defun previous-formats (list-info)
   (let ((level (list-level list-info))
 	(abstract-num (or (para-abstract-num list-info)
