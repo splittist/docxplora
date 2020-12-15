@@ -2,24 +2,6 @@
 
 (cl:in-package #:docxplora)
 
-#|
-
-# How numbering works
-
-List item style hierarchy (from most to least specific):
-
-* direct formatting (within numbering properties inside paragraph properties)
-   * numbering-definition-instance-reference
-   * numbering-level-reference
-* paragraph style (within paragraph properties)
-   * referenced-paragraph-style -> style-id
-   * that style has style-numbering-definition-instance-reference -> numId
-   * find numbering-definition-instance with that numId, then
-   * find related abstract-numbering-definition, then
-   * find numbering-level-definition with matching numbering-level-definition-paragraph-style
-
-|#
-
 (defun find-numbering-definition-instance-by-id (target id)
   (let ((nums (numbering-definition-instances target)))
     (find-if (alexandria:curry #'string= id)
@@ -55,29 +37,43 @@ List item style hierarchy (from most to least specific):
           (setf abstract-num
                 (find-abstract-numbering-definition-by-style-reference
                  document
-                 numbering-style-reference)))
+                 numbering-style-reference)
+                ilvl nil ;; ??
+                ))
         (values
          (if ilvl
-             (let ((override (find-numbering-level-definition-override-by-ilvl num ilvl))) ; FIXME
-               (or override
-                   (find-numbering-level-definition-by-level abstract-num ilvl)))
+             (or (find-numbering-level-definition-override-definition-by-ilvl num ilvl)
+                 (find-numbering-level-definition-by-level abstract-num ilvl))
              (find-numbering-level-definition-by-style abstract-num style-id))
-         num)))))
+         num
+         abstract-num)))))
 
 (defun find-numbering-level-definition-override-by-ilvl (num ilvl)
   (find-if (alexandria:curry #'string= ilvl)
            (numbering-level-definition-overrides num)
            :key #'numbering-level-definition-override-id))
 
+(defun find-numbering-level-definition-override-start-by-ilvl (num ilvl)
+  (let ((override
+         (find-numbering-level-definition-override-by-ilvl num ilvl)))
+    (when override
+      (numbering-level-definition-override-start override))))
+
+(defun find-numbering-level-definition-override-definition-by-ilvl (num ilvl)
+  (let ((override
+         (find-numbering-level-definition-override-by-ilvl num ilvl)))
+    (when override
+      (numbering-level-definition-override-definition override))))
+
 (defun applicable-numbering-level-definition-by-numid/ilvl (document numid ilvl)
   (let* ((num (find-numbering-definition-instance-by-id document numid))
          (abstract-num-id (abstract-numbering-definition-reference num))
-         (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id))
-         (override (find-numbering-level-definition-override-by-ilvl num ilvl)))
+         (abstract-num (find-abstract-numbering-definition-by-id document abstract-num-id)))
     (values
-     (or override
+     (or (find-numbering-level-definition-override-definition-by-ilvl num ilvl)
          (find-numbering-level-definition-by-level abstract-num ilvl))
-     num)))
+     num
+     abstract-num)))
 
 (defun applicable-numbering-level-definition (document paragraph)
   (let ((numid (numbering-definition-instance-reference paragraph)))
@@ -104,8 +100,10 @@ List item style hierarchy (from most to least specific):
 
 (defun find-abstract-numbering-definition-by-style-reference (target id)
   (let* ((style (find-style-definition-by-id target id))
-         (numid (style-numbering-definition-instance-reference style)))
-    (find-abstract-numbering-definition-by-id target numid)))
+         (numid (style-numbering-definition-instance-reference style))
+         (num (find-numbering-definition-instance-by-id target numid))
+         (abstract-num-id (abstract-numbering-definition-reference num)))
+    (find-abstract-numbering-definition-by-id target abstract-num-id)))
 
 (defun abstract-numbering-definition-style-link (abstract-num)
   (find-child/tag/val abstract-num "w:styleLink"))
@@ -130,10 +128,10 @@ List item style hierarchy (from most to least specific):
   (plump:attribute lvl-override "w:ilvl"))
 
 (defun numbering-level-definition-override-start (lvl-override)
-  (alexandria:when-let
-      ((start-override
-        (find-child/tag/val lvl-override "w:startOverride")))
-    (parse-integer start-override)))
+  (find-child/tag/val lvl-override "w:startOverride"))
+
+(defun numbering-level-definition-override-definition (lvl-override)
+  (find-child/tag lvl-override "w:lvl"))
 
 (defun numbering-level-reference (paragraph)
   (serapeum:and-let*
@@ -150,11 +148,11 @@ List item style hierarchy (from most to least specific):
 (defun numbering-level-definitions (abstract-num)
   (plump:get-elements-by-tag-name abstract-num "w:lvl"))
 
-(defun numbering-level-definition-ilvl (numbering-level-definition)
-  (plump:attribute numbering-level-definition "w:ilvl"))
+(defun numbering-level-definition-ilvl (lvl)
+  (plump:attribute lvl "w:ilvl"))
 
-(defun numbering-level-definition-is-legal (numbering-level-definition)
-  (when (find-child/tag numbering-level-definition "w:isLgl"))) ; FIXME check 17.17.4 boolean
+(defun numbering-level-definition-is-legal (lvl)
+  (when (find-child/tag lvl "w:isLgl"))) ; FIXME check 17.17.4 boolean
 
 (defun numbering-level-definition-restart (lvl)
   (alexandria:when-let ((restart (find-child/tag/val lvl "w:lvlRestart")))
@@ -518,16 +516,6 @@ List item style hierarchy (from most to least specific):
     ("upperRoman" ,(lambda (num)
 		     (format nil "~@R" num)))))
 
-#|
-(defun previous-formats (list-info)
-  (let ((level (list-level list-info))
-	(abstract-num (or (para-abstract-num list-info)
-			  (style-abstract-num list-info))))
-    (loop for l from (1- level) downto 0
-       collecting
-	 (let ((lvl (find-lvl abstract-num (princ-to-string l))))
-	   (find-child/tag/val lvl "w:numFmt")))))
-
 (defun format-level-text (list-text list-formats counts)
   (with-output-to-string (s)
     (when list-text
@@ -548,7 +536,7 @@ List item style hierarchy (from most to least specific):
 	       (setf percent-seen t))
 	      (t
 	       (write-char char s)))))))
-       
+#|       
 #+(or)(defmacro do-story-paragraphs ((paragraph story &optional return) &body body)
   `(dolist (,paragraph (paragraphs-in-document-order (opc:xml-root ,story)) ,return)
      ,@body))
@@ -581,3 +569,40 @@ List item style hierarchy (from most to least specific):
 	     list-infos)))
 
 |#
+(defun paragraph-formatted-numbers (document paragraphs)
+  (let ((count-dict (make-hash-table)))
+    (mapcar
+         (lambda (paragraph)
+           (multiple-value-bind (lvl num abstract-num)
+               (applicable-numbering-level-definition document paragraph)
+             (when (and num lvl)
+               (unless (gethash num count-dict)
+                 (setf (gethash num count-dict) (make-array 9 :initial-element 0)))
+               (let* ((ilvl-txt (numbering-level-definition-ilvl lvl))
+                      (ilvl (parse-integer ilvl-txt)))
+                 (alexandria:if-let
+                     ((start-override
+                       (find-numbering-level-definition-override-start-by-ilvl num ilvl-txt)))
+                   (setf (aref (gethash num count-dict) ilvl) (parse-integer start-override))
+                   (incf (aref (gethash num count-dict) ilvl)))
+                 (loop for l from (1+ ilvl) below 9 ;; FIXME - start, lvlRestart
+                    do (setf (aref (gethash num count-dict) l) 0))
+                 (let ((numfmt (numbering-level-definition-format lvl)))
+                   (if (string= "bullet" numfmt)
+                       (numbering-level-definition-text lvl)
+                       (format-level-text
+                        (numbering-level-definition-text lvl)
+                        (append
+                         (if (numbering-level-definition-is-legal lvl)
+                             (make-list lvl :initial-element "decimal")
+                             (previous-formats ilvl abstract-num))
+                         (list numfmt))
+                        (gethash num count-dict))))))))
+         paragraphs)))
+
+(defun previous-formats (ilvl abstract-num) ;; FIXME - placeholder
+  (loop for l from (1- ilvl) downto 0
+     collecting
+       (numbering-level-definition-format
+        (find-numbering-level-definition-by-level abstract-num (princ-to-string l)))))
+  
