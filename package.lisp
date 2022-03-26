@@ -41,6 +41,7 @@
    #:ct
    #:ns
    #:rt
+   #:get-relationships-by-type-code
    #:opc-xml-part
    #:xml-root
    #:flush-part

@@ -27,7 +27,7 @@
 (defgeneric main-document (document)
   (:method (document)
     (let* ((package (opc-package document))
-	   (rel (first (opc:get-relationships-by-type package (opc:rt "OFFICE_DOCUMENT"))))
+	   (rel (first (opc:get-relationships-by-type-code package "OFFICE_DOCUMENT")))
 	   (target (opc:uri-merge "/" (opc:target-uri rel))))
       (get-part-by-name document target :xml t))))
 

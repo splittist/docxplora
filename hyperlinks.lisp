@@ -5,7 +5,7 @@
 ;;; Hyperlinks (external)
 
 (defun find-hyperlink (source uri)
-  (find uri (opc:get-relationships-by-type source (opc:rt "HYPERLINK"))
+  (find uri (opc:get-relationships-by-type-code source "HYPERLINK")
 	:key #'opc:target-uri
 	:test #'string-equal)) ; FIXME Genrally check string= / string-equal
 

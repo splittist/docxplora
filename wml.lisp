@@ -25,12 +25,12 @@
 
 (defmethod main-document ((document wml-document))
   (let* ((package (opc-package document))
-	 (rel (first (opc:get-relationships-by-type package (opc:rt "OFFICE_DOCUMENT"))))
+	 (rel (first (opc:get-relationships-by-type-code package "OFFICE_DOCUMENT")))
 	 (target (opc:uri-merge "/" (opc:target-uri rel))))
     (get-part-by-name document target :xml t :class 'main-document)))
 
-(defgeneric add-main-document (document)
-  (:method ((document wml-document))
+(defgeneric add-main-document (document &key strict)
+  (:method ((document wml-document) &key strict)
     (let* ((package (opc-package document))
 	   (part (create-wml-xml-part
 		  'main-document
@@ -45,13 +45,13 @@
 	(setf (plump:attribute doc (format nil "xmlns:~A" (car ns))) (cdr ns)))
       (dolist (mc *md-ignorable*)
 	(setf (plump:attribute doc (car mc)) (cdr mc)))
-      (opc:create-relationship package "/word/document.xml" (opc:rt "OFFICE_DOCUMENT"))
+      (opc:create-relationship package "/word/document.xml" (opc:rt "OFFICE_DOCUMENT" :strict strict))
       part)))
   
-(defun ensure-main-document (document)
+(defun ensure-main-document (document &key strict)
   (alexandria:if-let ((existing (main-document document)))
     existing
-    (add-main-document document)))
+    (add-main-document document :strict strict)))
 
 ;;; FIXME can also be target of glossary-document
 
@@ -70,8 +70,11 @@
      (defclass ,class (wml-xml-part)())
      (defgeneric ,class (document)
        (:method ((document wml-document))
-	 (md-target document (opc:rt ,relationship-type) ',class)))
-     (defgeneric ,add-name (document)
+         (multiple-value-bind (transitional strict)
+             (opc:rt ,relationship-type)
+           (or (md-target document transitional ',class)
+               (md-target document strict ',class)))))
+     (defgeneric ,add-name (document &key strict)
        (:method ((document wml-document))
 	 (let* ((package (opc-package document))
 		(md (main-document document))
@@ -87,7 +90,7 @@
 	       (setf (plump:attribute root (format nil "xmlns:~A" (car ns))) (cdr ns))))
 	   (setf (plump:attribute root "mc:Ignorable") ,ignorables)
 	   (opc:create-relationship md (opc:uri-relative "/word/document.xml" ,uri)
-				    (opc:rt ,relationship-type))
+				    (opc:rt ,relationship-type :strict strict))
 	   part)))
      (defgeneric ,ensure-name (document)
        (:method ((document document))
