@@ -75,7 +75,7 @@
            (or (md-target document transitional ',class)
                (md-target document strict ',class)))))
      (defgeneric ,add-name (document &key strict)
-       (:method ((document wml-document))
+       (:method ((document wml-document) &key strict)
 	 (let* ((package (opc-package document))
 		(md (main-document document))
 		(part (create-wml-xml-part
@@ -342,7 +342,7 @@
 			 do (acc child))
 		      #+(or)(push #.(string #\Newline) ac)))))) ; no #\Newline
       (acc node))
-    (serapeum:string-join (nreverse ac))))
+    (apply #'serapeum:concat (nreverse ac))))
 
 (defun run-from-text-preprocess (string)
   (let ((result '())
@@ -451,7 +451,6 @@
 				  run-properties
 				  (merge-properties run-properties existing-props))))
 	       (new-run (run-from-text text new-props)))
-	  (FORMAT T "~A : ~A : ~A~%" left new-run right) ;; DEBUG
 	  (plump:replace-child run new-run)
 	  (when left (plump:insert-before new-run left))
 	  (when right (plump:insert-after new-run right))
@@ -556,5 +555,6 @@
 						  :preserve-case preserve-case
 						  :simple-calls simple-calls)))
 	    (paragraph-delete-text paragraph match-start (- match-end match-start))
-	    (paragraph-insert-text paragraph replace match-start new-properties))))
+	    (paragraph-insert-text paragraph replace match-start new-properties)
+	    )))
   paragraph)
