@@ -41,6 +41,8 @@
 	       (:file "hyperlinks" :depends-on ("package" "wml"))
 	       (:file "images" :depends-on ("package" "wml"))
                (:file "comments" :depends-on ("package" "wml"))
+	       (:file "footnotes" :depends-on ("package" "wml"))
+	       (:file "endnotes" :depends-on ("package" "wml"))
 
 	       (:file "docxplora")))
 

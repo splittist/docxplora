@@ -93,6 +93,9 @@
    #:comment-author
    #:comment-initials
    #:comment-date
+
+   #:get-footnote-by-id
+   #:get-endnote-by-id
    
    #:find-child/tag
    #:find-children/tag
