@@ -19,4 +19,10 @@
 (defun comment-date (comment)
   (plump:attribute comment "w:date"))
 
-
+(defun comments-in-document-order (node)
+  (let ((result '()))
+    (plump:traverse
+     node
+     #'(lambda (node) (when (tagp node "w:comment") (push node result)))
+     :test #'plump:element-p)
+    (nreverse result)))

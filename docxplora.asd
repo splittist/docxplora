@@ -35,6 +35,8 @@
 	       (:file "wml-namespaces" :depends-on ("package"))
 	       (:file "wml" :depends-on ("package" "ooxml" "utils" "wml-namespaces"))
 
+	       (:file "settings" :depends-on ("package" "wml"))
+	       (:file "sections" :depends-on ("package" "wml"))
 	       (:file "tables" :depends-on ("package" "wml"))
 	       (:file "styles" :depends-on ("package" "wml"))
 	       (:file "numbering" :depends-on ("package" "wml"))

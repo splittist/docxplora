@@ -217,12 +217,6 @@
 
 ;; XSL Transformation ditto @ w:saveThroughXslt via r:id with .../transform
 
-(defgeneric sections (document)
-  (:method ((document wml-document))
-    (let* ((md (main-document document))
-	   (root (opc:xml-root md)))
-      (plump:get-elements-by-tag-name root "w:sectPr"))))
-
 ;;;;;;;;;;;;;;;;; building
 
 (defun preservep (string) ; FIXME - stop defining this everywhere

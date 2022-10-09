@@ -49,7 +49,9 @@
 ;;; plump shortcuts
 
 (defun find-child/tag (parent child-tag-name)
-  (find child-tag-name (plump:children parent) :key #'plump:tag-name :test #'equal))
+  (find child-tag-name (plump:children parent)
+	:key #'(lambda (c) (and (plump:element-p c) (plump:tag-name c)))
+	:test #'equal))
 
 (defun find-children/tag (parent child-tag-name)
   (remove-if-not (alexandria:curry #'equal child-tag-name)
@@ -79,8 +81,8 @@
 
 ;;; run properties
 
-(defun rpr-boolean-property (rpr property-name)
-  (let ((prop (first (plump:get-elements-by-tag-name rpr property-name))))
+(defun boolean-property (pr property-name)
+  (let ((prop (first (plump:get-elements-by-tag-name pr property-name))))
     (when prop
       (let ((val (plump:attribute prop "w:val")))
 	(cond
@@ -92,6 +94,18 @@
 	  ((string= "false" val) nil)
 	  ((string= "off" val) nil)
 	  (t nil))))))
+
+(defun on-off-attribute (element attribute)
+  (multiple-value-bind (attr foundp)
+      (plump:attribute element attribute)
+    (cond
+      ((null foundp) nil)
+      ((null attr) t)
+      ((string= "1" attr) t)
+      ((string= "true" attr) t)
+      ((string= "0" attr) nil)
+      ((string= "false" attr) nil)
+      (t nil)))) ;; FIXME is this correct for the incorrect case?
 
 ;;; coalescing elements
 
