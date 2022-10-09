@@ -79,6 +79,13 @@
 (defun tagp (node tag)
   (string= tag (plump:tag-name node)))
 
+(defun find-ancestor-element (node ancestor-tag)
+  (loop for next = (plump:parent node) then (plump:parent next)
+	while (plump:child-node-p next)
+	when (tagp next ancestor-tag)
+	  do (return next)
+	finally (return nil)))	
+
 ;;; run properties
 
 (defun boolean-property (pr property-name)

@@ -72,8 +72,12 @@
    #:web-settings
    #:headers
    #:footers
+   #:header
+   #:footer
 
    #:add-main-document
+
+   #:paragraphs-in-document-order
    
    #:make-inline-image
 
@@ -93,9 +97,24 @@
    #:comment-author
    #:comment-initials
    #:comment-date
+   #:comments-in-document-order
 
+   #:sections
+   #:paragraph-section
+   
    #:get-footnote-by-id
+   #:footnote-references-in-document-order
+   #:footnotes-in-document-order
+   #:footnote-reference-paragraph
+   #:footnote-reference-section
+   #:footnote-references-numbering
+   
    #:get-endnote-by-id
+   #:endnote-references-in-document-order
+   #:endnotes-in-document-order
+   #:endnote-reference-paragraph
+   #:endnote-reference-section
+   #:endnote-references-numbering
    
    #:find-child/tag
    #:find-children/tag
@@ -104,6 +123,7 @@
    #:make-element/attrs
    #:get-first-element-by-tag-name
    #:tagp
+   #:find-ancestor-element
    #:coalesce-adjacent-text
    ))
 
