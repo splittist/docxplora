@@ -58,6 +58,10 @@
 		 (coerce (plump:children parent) 'list)
 		 :key #'plump:tag-name))
 
+(defun find-child/tag/val (root tag)
+  (alexandria:when-let ((element (find-child/tag root tag)))
+    (plump:attribute element "w:val")))
+
 (defun ensure-child/tag (parent child-tag-name &optional first)
   (or (find-child/tag parent child-tag-name)
       (if (not first)

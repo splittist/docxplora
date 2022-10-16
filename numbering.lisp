@@ -169,23 +169,22 @@
   (find-child/tag/val lvl "w:pStyle"))
 
 (defun numbering-level-definition-start (lvl)
-  (alexandria:when-let ((start (find-child/tag/val lvl "w:start")))
-    (parse-integer start)))
+  (find-child/tag/val lvl "w:start"))
+
+
 
 ;;;;
 
 (defun get-next-num-id (numbering-definitions)
-  (let* ((root (opc:xml-root numbering-definitions))
-	 (nums (plump:get-elements-by-tag-name root "w:num"))
-	 (digits (mapcar (alexandria:rcurry #'plump:attribute "w:numId") nums)))
+  (let* ((nums (numbering-definition-instances numbering-definitions))
+	 (digits (mapcar #'numbering-definition-instance-id nums)))
     (loop for i from 1
        while (find (princ-to-string i) digits :test #'string=)
 	 finally (return i))))
 
 (defun get-next-abstract-num-id (numbering-definitions)
-  (let* ((root (opc:xml-root numbering-definitions))
-	 (nums (plump:get-elements-by-tag-name root "w:abstractNum"))
-	 (digits (mapcar (alexandria:rcurry #'plump:attribute "w:abstractNumId") nums)))
+  (let* ((nums (abstract-numbering-definitions numbering-definitions))
+	 (digits (mapcar #'abstract-numbering-definition-id nums)))
     (loop for i from 1
        while (find (princ-to-string i) digits :test #'string=)
 	 finally (return i))))
@@ -205,11 +204,6 @@
 						  "w:numbering")))
     (plump:append-child numbering numbering-definition)))
 
-;;;;
-
-(defun find-child/tag/val (root tag)
-  (alexandria:when-let ((element (find-child/tag root tag)))
-    (plump:attribute element "w:val")))
 
 ;;;;
 #|
@@ -605,4 +599,108 @@
      collecting
        (numbering-level-definition-format
         (find-numbering-level-definition-by-level abstract-num (princ-to-string l)))))
-  
+
+;;;
+
+(defun make-numbering-counter ()
+  (make-hash-table))
+
+(defun initialize-counter-for-abstract-num (counter abstract-num)
+  (let* ((lvls (numbering-level-definitions abstract-num))
+	 (counts (make-array (length lvls) :initial-element -1)))
+    (setf (gethash abstract-num counter) counts)
+    counter))
+
+(defun ensure-counter-for-abstract-num (counter abstract-num)
+  (alexandria:if-let ((result (gethash abstract-num counter)))
+    counter
+    (initialize-counter-for-abstract-num counter abstract-num)))
+
+(defun counter-counts-for-abstract-num (counter abstract-num)
+  (gethash abstract-num counter))
+
+(defun increment-counter-for-ilvl (counter ilvl abstract-num)
+  (let ((ilvl-num (parse-integer ilvl)))
+    (incf (aref (gethash abstract-num counter) ilvl-num))
+    (loop for level from (1+ ilvl-num)
+	  for level-txt = (princ-to-string level)
+	  for lvl = (find-numbering-level-definition-by-level abstract-num level-txt)
+	  for restart = (and lvl (numbering-level-definition-restart lvl))
+	  while lvl
+	  do (cond
+	       ((equal "0" restart)
+		nil)
+	       ((null restart)
+		(setf (aref (gethash abstract-num counter) level) -1))
+	       ((< (and restart (parse-integer restart)) level)
+		nil)
+	       (t
+		(break)))) ;; DEBUG
+    counter))
+
+(defun set-counter-for-ilvl (counter start-override ilvl abstract-num)
+  (setf (aref (gethash abstract-num counter) (parse-integer ilvl))
+	(parse-integer start-override))
+  counter)
+
+(defun applicable-numbering-level-definition-from-ilvl (ilvl num abstract-num)
+  (or (find-numbering-level-definition-override-definition-by-ilvl num ilvl)
+      (find-numbering-level-definition-by-level abstract-num ilvl)))
+
+(defun formatted-number (counter lvl num abstract-num)
+  (let ((text (numbering-level-definition-text lvl))
+	(is-legal (numbering-level-definition-is-legal lvl))
+	(format (numbering-level-definition-format lvl)))
+    (if
+     (equal "bullet" format)
+     (string #\Bullet)
+     (with-output-to-string (s)
+       (loop with percent-seen = nil
+	     for char across text
+	     do (cond
+		  ((and percent-seen (digit-char-p char))
+		   (let* ((level (1- (digit-char-p char)))
+			  (ilvl (princ-to-string level)))
+		     (write-string
+		      (format-number
+		       (if is-legal
+			   "decimal"
+			   (numbering-level-definition-format
+			    (applicable-numbering-level-definition-from-ilvl ilvl num abstract-num)))
+		       (+ (aref (counter-counts-for-abstract-num counter abstract-num) level)
+			  (alexandria:if-let
+			      ((start (numbering-level-definition-start
+				       (applicable-numbering-level-definition-from-ilvl ilvl num abstract-num))))
+			    (parse-integer start)
+			    0)))
+		      s)
+		     (setf percent-seen nil)))
+		  (percent-seen
+		   (write-char #\% s)
+		   (write-char char s)
+		   (setf percent-seen nil))
+		  ((char= #\% char)
+		   (setf percent-seen t))
+		  (t
+		   (write-char char s))))))))
+
+(defun paragraph-formatted-numbers* (document part)
+  (let* ((paragraphs (paragraphs-in-document-order (opc:xml-root part)))
+	 (counter (make-numbering-counter))
+	 (result '()))
+    (dolist (paragraph paragraphs (nreverse result))
+      (multiple-value-bind (lvl num abstract-num)
+	  (applicable-numbering-level-definition document paragraph)
+	(push
+	 (list
+	  (when (and num lvl)
+	    (let ((ilvl (numbering-level-definition-ilvl lvl)))
+	      (ensure-counter-for-abstract-num counter abstract-num)
+	      (alexandria:when-let
+		  ((start-override (find-numbering-level-definition-override-start-by-ilvl num ilvl)))
+		(set-counter-for-ilvl counter start-override ilvl abstract-num))
+	      (increment-counter-for-ilvl counter ilvl abstract-num)
+	      (formatted-number counter lvl num abstract-num)))
+	  paragraph)
+	 result)))))
+	      
