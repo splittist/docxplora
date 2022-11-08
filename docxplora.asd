@@ -12,43 +12,63 @@
 			    #:plump #:lquery
 			    #:cl-ppcre
 
+			    #:trees
+			    #:local-time
+			    
 			    #:wuss
 			    #:recolor
 			    #:imagesniff)
   :components ((:file "package")
+	       (:file "utils")
 
-	       (:file "opc-content-types" :depends-on ("package"))
-	       (:file "opc-core-properties" :depends-on ("package"))
-	       (:file "opc-relationship-types" :depends-on ("package"))
-	       (:file "opc-namespaces" :depends-on ("package"))
-               (:file "opc" :depends-on ("package"
-					 "opc-content-types"
-					 "opc-relationship-types"
-					 "opc-namespaces"
-					 "opc-core-properties"))
+	       (:module "opc"
+		:depends-on ("package")
+		:components ((:file "opc-content-types")
+			     (:file "opc-core-properties")
+			     (:file "opc-relationship-types")
+			     (:file "opc-namespaces")
+			     (:file "opc" :depends-on ("opc-content-types"
+						       "opc-relationship-types"
+						       "opc-namespaces"
+						       "opc-core-properties"))))
 
-	       (:file "ooxml-content-types" :depends-on ("package"))
-	       (:file "ooxml" :depends-on ("package" "opc"))
+	       (:module "ooxml"
+		:depends-on ("package" "opc")
+		:components ((:file "ooxml-content-types")
+			     (:file "ooxml")))
 
-	       (:file "wml-ordering" :depends-on ("package"))
-	       (:file "utils" :depends-on ("package" "wml-ordering"))
-	       (:file "wml-namespaces" :depends-on ("package"))
-	       (:file "wml" :depends-on ("package" "ooxml" "utils" "wml-namespaces"))
-
-	       (:file "settings" :depends-on ("package" "wml"))
-	       (:file "sections" :depends-on ("package" "wml"))
-	       (:file "tables" :depends-on ("package" "wml"))
-	       (:file "styles" :depends-on ("package" "wml"))
-	       (:file "numbering" :depends-on ("package" "wml"))
-	       (:file "hyperlinks" :depends-on ("package" "wml"))
-	       (:file "images" :depends-on ("package" "wml"))
-               (:file "comments" :depends-on ("package" "wml"))
-	       (:file "footnotes" :depends-on ("package" "wml"))
-	       (:file "endnotes" :depends-on ("package" "wml"))
-
+	       (:module "wml"
+		:depends-on ("package" "opc" "ooxml")
+		:components  ((:file "wml-ordering")
+			      (:file "utils" :depends-on ("wml-ordering"))
+			      (:file "wml-namespaces")
+			      (:file "wml" :depends-on ("utils" "wml-namespaces"))
+			      
+			      (:file "settings" :depends-on ("wml"))
+			      (:file "sections" :depends-on ( "wml"))
+			      (:file "tables" :depends-on ("wml"))
+			      (:file "styles" :depends-on ("wml"))
+			      (:file "numbering" :depends-on ("wml"))
+			      (:file "hyperlinks" :depends-on ("wml"))
+			      (:file "images" :depends-on ("wml"))
+			      (:file "comments" :depends-on ("wml"))
+			      (:file "footnotes" :depends-on ("wml"))
+			      (:file "endnotes" :depends-on ("wml"))))
+	       (:module "sml"
+		:depends-on ("package" "opc" "ooxml" "wml")
+		:components ((:file "utils")
+			     (:file "sml-namespaces")
+			     (:file "future")
+			     (:file "cell-table")
+			     (:file "sml" :depends-on ("utils" "sml-namespaces"))
+			     (:file "shared-strings" :depends-on ("sml"))
+			     (:file "workbook-writer" :depends-on ("sml" "shared-strings"))
+			     (:file "workbook-editor" :depends-on ("workbook-writer"))
+			     (:file "worksheet" :depends-on ("sml" "shared-strings"))
+			     (:file "table" :depends-on ("sml"))))
 	       (:file "docxplora")))
 
-(asdf:defsystem #:docxplora-test
+(asdf:defsystem #:docxplora/test
   :depends-on (#:docxplora #:parachute)
   :components ((:file "build-tests"))
   :perform (asdf:test-op (op c) (uiop:symbol-call :parachute :test :test-package)))

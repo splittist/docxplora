@@ -36,21 +36,43 @@
    #:uri-directory
    #:uri-relative
    #:uri-merge
-   #:opc-xml-part
    #:flush-part
    #:ct
    #:ns
    #:rt
    #:get-relationships-by-type-code
    #:opc-xml-part
+   #:parse
+   #:serialize
    #:xml-root
    #:flush-part
    #:write-part
    #:ensure-xml
    #:create-xml-part))
 
-(defpackage #:docxplora
+(defpackage #:plump-utils
   (:use #:cl)
+  (:export
+   #:find-child/tag
+   #:find-children/tag
+   #:find-child/tag/val
+   #:ensure-child/tag
+   #:remove-child/tag
+   #:remove-if/tag
+   #:remove-if-not/tag
+   #:make-element/attrs
+   #:get-first-element-by-tag-name
+   #:tagp
+   #:find-ancestor-element
+   #:preservep
+   #:make-text-element
+   #:increment-attribute))
+
+(defpackage #:sml
+  (:use #:cl #:plump-utils))
+
+(defpackage #:docxplora
+  (:use #:cl #:plump-utils)
   (:export
    #:document
    #:opc-package
@@ -93,7 +115,7 @@
    #:make-numbering-start-override
 
    #:get-comment-by-id
-   #:commend-id
+   #:comment-id
    #:comment-author
    #:comment-initials
    #:comment-date
@@ -118,12 +140,19 @@
    
    #:find-child/tag
    #:find-children/tag
+   #:find-child/tag/val
    #:ensure-child/tag
    #:remove-child/tag
+   #:remove-if/tag
+   #:remove-if-not/tag
    #:make-element/attrs
    #:get-first-element-by-tag-name
    #:tagp
    #:find-ancestor-element
+   #:preservep
+   #:make-text-element
+   #:increment-attribute
+   
    #:coalesce-adjacent-text
    ))
 

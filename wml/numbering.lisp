@@ -192,7 +192,7 @@
 (defun make-numbering-start-override (numbering-definitions abstract-num-id &key (ilvl 0) (start 1))
   (let ((num-id (get-next-num-id numbering-definitions)))
     (plump:first-child
-     (plump:parse
+     (opc:parse
       (wuss:compile-style
        `(:num num-id ,num-id
 	 (:abstract-num-id ,abstract-num-id
@@ -448,9 +448,6 @@
 		   :para-override or)))
 |#
 
-(defun format-number (format number)
-  (funcall (second (assoc format *numbering-formats* :test #'string=)) number))
-
 (defparameter *numbering-formats*
   `(("aiueo" ,(lambda (num)
 	       (let ((num (1+ (mod num 46))))
@@ -509,6 +506,9 @@
 				(code-char (+ quotient (char-code #\A)))))))
     ("upperRoman" ,(lambda (num)
 		     (format nil "~@R" num)))))
+
+(defun format-number (format number)
+  (funcall (second (assoc format *numbering-formats* :test #'string=)) number))
 
 (defun format-level-text (list-text list-formats counts)
   (with-output-to-string (s)

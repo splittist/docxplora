@@ -219,17 +219,6 @@
 
 ;;;;;;;;;;;;;;;;; building
 
-(defun preservep (string) ; FIXME - stop defining this everywhere
-  (or (alexandria:starts-with #\Space string :test #'char=)
-      (alexandria:ends-with #\Space string :test #'char=)))
-
-(defun make-text-element (parent text)
-  (let ((wt (plump:make-element parent "w:t")))
-    (when (preservep text)
-      (setf (plump:attribute wt "xml:space") "preserve"))
-    (plump:make-text-node wt text)
-    wt))
-
 (defun split-text-element (node index)
   (let* ((text (plump:text node))
 	 (limit (length text)))
@@ -245,21 +234,9 @@
       (if left-space
 	  (setf (plump:attribute node "xml:space") "preserve")
 	  (plump:remove-attribute node "xml:space"))
-      (let ((new (make-text-element (plump:make-root) right)))
+      (let ((new (make-text-element (plump:make-root) right "w:t")))
 	(plump:insert-after node new)
 	(values node new)))))
-
-(defun remove-if/tag (tag sequence)
-  (plump:ensure-child-array
-   (remove-if (alexandria:curry #'string= tag)
-	      sequence
-	      :key #'plump:tag-name)))
-
-(defun remove-if-not/tag (tag sequence)
-  (plump:ensure-child-array
-   (remove-if-not (alexandria:curry #'string= tag)
-		  sequence
-		  :key #'plump:tag-name)))
 
 (defun split-run (run index)
   (cond ((zerop index) ; the beginning
@@ -370,7 +347,7 @@
 	((eq :cr item)
 	 (plump:make-element run "w:cr"))
 	((stringp item)
-	 (make-text-element run item))
+	 (make-text-element run item "w:t"))
 	(t (error "Unknown item"))))))
 
 (defun paragraphs-in-document-order (node)

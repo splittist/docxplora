@@ -18,11 +18,14 @@
   (opc:save-package (opc-package document) pathname))
 
 (defgeneric get-part-by-name (document name &key xml class)
-  (:method ((document document) (name string) &key xml class)
-    (let* ((package (opc-package document))
-	   (part (opc:get-part package name)))
+  (:method ((package opc:opc-package) (name string) &key xml class)
+    (let ((part (opc:get-part package name)))
       (when xml (opc:ensure-xml part))
-      (if class (change-class part class) part))))
+      (if class (change-class part class) part)))
+  (:method ((document document) (name string) &key xml class)
+    (get-part-by-name (opc-package document) name :xml xml :class class))
+  (:method ((part opc:opc-part) (name string) &key xml class)
+    (get-part-by-name (opc:opc-package part) name :xml xml :class class)))
     
 (defgeneric main-document (document)
   (:method (document)

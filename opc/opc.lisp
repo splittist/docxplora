@@ -99,8 +99,16 @@
 		   :defaults defaults
 		   :overrides (make-hash-table :test 'equal))))
 
+(defun parse (input &key root)
+  (let ((plump:*tag-dispatchers* plump:*xml-tags*))
+    (plump:parse input :root root)))
+
+(defun serialize (node &optional (stream t))
+  (let ((plump:*tag-dispatchers* plump:*xml-tags*))
+    (plump:serialize node stream)))
+
 (defun ct-part->ctm (ct-part)
-  (let ((root (plump:parse (flexi-streams:octets-to-string (content ct-part) :external-format :utf8)))
+  (let ((root (parse (flexi-streams:octets-to-string (content ct-part) :external-format :utf8)))
 	(defaults (make-hash-table :test 'equal))
 	(overrides (make-hash-table :test 'equal)))
     (loop for default in (plump:get-elements-by-tag-name root "Default")
@@ -149,7 +157,7 @@
 
 (defun rels-part->rels (rels-part)
   (let ((source (uri-rels-source (part-name rels-part)))
-	(root (plump:parse (flexi-streams:octets-to-string (content rels-part) :external-format :utf8)))
+	(root (parse (flexi-streams:octets-to-string (content rels-part) :external-format :utf8)))
 	(rels (make-hash-table :test 'equal)))
     (loop for rel in (plump:get-elements-by-tag-name root "Relationship")
        do (setf (gethash (plump:attribute rel "Id") rels)
@@ -191,7 +199,7 @@
        for rid = (format nil "rId~D" i) then (format nil "rId~D" i)
        while (find rid ids :test 'string-equal)
 	 finally (return rid))))
-
+ 
 (defgeneric create-relationship (source uri relationship-type &key id target-mode)
   (:method ((source opc-package) (uri string) (relationship-type string) &key id (target-mode "Internal"))
     (let* ((rels (package-relationships source))
@@ -267,7 +275,7 @@
 	""))) ;; or nil?
 
 (defun uri-merge (source target)
-  (namestring (uiop:parse-unix-namestring (merge-pathnames target source))))
+  (namestring (uiop:parse-unix-namestring (namestring (merge-pathnames target source)))))
 
 (defun uri-relative (source target)
   (enough-namestring target source))
@@ -400,7 +408,7 @@
 	     (package-parts package))))
 
 (defun xml-octets (xml)
-  (flexi-streams:string-to-octets (plump:serialize xml nil) :external-format :utf8))
+  (flexi-streams:string-to-octets (serialize xml nil) :external-format :utf8))
 
 (defclass xml-root-mixin ()
   ((%xml-root :initarg :xml-root :accessor xml-root)))
@@ -411,7 +419,7 @@
   (when (eql 'opc-part (type-of part))
     (change-class part 'opc-xml-part)
     (setf (xml-root part)
-	  (plump:parse (flexi-streams:octets-to-string (content part) :external-format :utf8))))
+	  (parse (flexi-streams:octets-to-string (content part) :external-format :utf8))))
   part)
 
 (defun create-xml-part (package uri content-type)
@@ -426,7 +434,7 @@
   (:method ((part opc-xml-part))
     (setf (content part)
 	  (flexi-streams:string-to-octets
-	   (plump:serialize (xml-root part) nil)
+	   (serialize (xml-root part) nil)
 	   :external-format :utf8))))
 
 (defun write-part (part filespec &key (if-exists :supersede))

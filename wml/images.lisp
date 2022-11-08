@@ -49,7 +49,7 @@
 
 (defun make-inline-image-entry (name rid cx cy)
   (plump:first-child
-   (plump:parse
+   (opc:parse
     (format nil
 	    "<w:drawing>
   <wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\">

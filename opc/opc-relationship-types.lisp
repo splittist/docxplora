@@ -72,6 +72,7 @@
     ("VML_DRAWING" "http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing" "http://purl.oclc.org/ooxml/officeDocument/relationships/vmlDrawing")
     ("VOLATILE_DEPENDENCIES" "http://schemas.openxmlformats.org/officeDocument/2006/relationships/volatileDependencies" "http://purl.oclc.org/ooxml/officeDocument/relationships/volatileDependencies")
     ("WEB_SETTINGS" "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" "http://purl.oclc.org/ooxml/officeDocument/relationships/webSettings")
+    ("WORKSHEET" "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" "http://purl.oclc.org/ooxml/officeDocument/relationships/worksheet")
     ("WORKSHEET_SOURCE" "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheetSource" "http://purl.oclc.org/ooxml/officeDocument/relationships/worksheetSource")
     ("XML_MAPS" "http://schemas.openxmlformats.org/officeDocument/2006/relationships/xmlMaps" "http://purl.oclc.org/ooxml/officeDocument/relationships/xmlMaps")))
 
