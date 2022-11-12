@@ -27,11 +27,13 @@
   (applicable-endnote-reference-numbering-value "w:numFmt" "lowerRoman" endnote-reference sections document))
 
 (defun endnote-references-in-document-order (node)
-  (let ((result '()))
-    (plump:traverse
-     node
-     #'(lambda (node) (when (tagp node "w:endnoteReference") (push node result)))
-     :test #'plump:element-p)
+  (let ((result '())
+	(paragraphs (paragraphs-in-document-order node)))
+    (dolist (paragraph paragraphs)
+      (plump:traverse
+       paragraph
+       (lambda (node) (when (tagp node "w:endnoteReference") (push node result)))
+       :test #'plump:element-p))
     (nreverse result)))
 
 (defgeneric endnotes-in-document-order (target)
