@@ -350,11 +350,29 @@
 	 (make-text-element run item "w:t"))
 	(t (error "Unknown item"))))))
 
+(defun paragraph-has-nested-paragraphs (p)
+  (get-first-element-by-tag-name p "w:p"))
+
+(defun process-paragraph (p)
+  (let ((results (list p)))
+    (loop while (paragraph-has-nested-paragraphs p) do
+      (loop with nested = (get-first-element-by-tag-name p "w:p")
+	    for parent =  nested then (plump:parent parent)
+	    and child = nil then parent
+	    while (plump:child-node-p parent)
+	    until (eq parent p)
+	    finally (assert (eq parent p))
+		    (loop for c across (plump:children (plump:parent nested))
+			  when (tagp c "w:p")
+			    do (push c results))
+		    (plump:remove-child child)))
+    results))
+
 (defun paragraphs-in-document-order (node)
   (let ((result '()))
     (plump:traverse
      node
-     #'(lambda (node) (when (tagp node "w:p") (push node result)))
+     (lambda (node) (when (tagp node "w:p") (setf result (append (process-paragraph node) result))))
      :test #'plump:element-p)
     (nreverse result)))
 

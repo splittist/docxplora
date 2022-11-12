@@ -46,7 +46,14 @@
   (plump:make-element root tag-name :attributes (alexandria:plist-hash-table attributes :test 'equalp)))
 
 (defun get-first-element-by-tag-name (node tag)
-  (first (plump:get-elements-by-tag-name node tag)))
+  (labels ((scan-children (node)
+	     (loop for child across (plump:children node)
+		   when (plump:element-p child)
+			do (when (tagp child tag)
+			     (return-from get-first-element-by-tag-name child))
+			   (scan-children child))))
+    (scan-children node)
+    nil))
 
 (defun tagp (node tag)
   (string= tag (plump:tag-name node)))
