@@ -126,10 +126,11 @@
 	    do (make-text-element si word "t"))
     sst))
 
-(defun prepare-string-table (ww)
-  (let ((string-table (workbook-writer-sst ww))
-	(sst-element (get-first-element-by-tag-name (opc:xml-root (shared-string-table (workbook-writer-document ww))) "sst")))
-    (fill-sst string-table sst-element)))
+(defgeneric prepare-string-table (ww)
+  (:method ((ww workbook-writer))
+    (let ((string-table (workbook-writer-sst ww))
+	  (sst-element (get-first-element-by-tag-name (opc:xml-root (shared-string-table (workbook-writer-document ww))) "sst")))
+      (fill-sst string-table sst-element))))
 
 (defclass ww-sheet ()
   ((%ww

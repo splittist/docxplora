@@ -31,12 +31,16 @@
       (push sheet (workbook-editor-edited-sheets we))
       sheet)))
 
+(defmethod prepare-string-table ((we workbook-editor))
+  (replace-string-table we))
+
 (defun replace-string-table (we)
   (let ((string-table (workbook-editor-sst we))
 	(sst-element (get-first-element-by-tag-name
 		      (opc:xml-root (shared-string-table (workbook-editor-document we)))
 		      "sst")))
-    (loop for child across (plump:children sst-element)
+    (setf (plump:children sst-element) (plump:make-child-array))
+    #+(or)(loop for child across (plump:children sst-element)
 	  do (plump:remove-child child))
     (fill-sst string-table sst-element)))
 
