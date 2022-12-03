@@ -3,20 +3,32 @@
 (in-package #:sml)
 
 (defclass worksheet (sml-xml-part)
-  ())
+  ((%workbook
+    :initarg :workbook
+    :accessor worksheet-workbook)
+   (%name
+    :initarg :name
+    :accessor worksheet-name)))
 
 (defgeneric worksheets (document)
   (:method ((document sml-document))
     (let* ((wb (workbook document))
 	   (sheet-refs (plump:get-elements-by-tag-name (opc:xml-root wb) "sheet"))
-	   (ids (mapcar #'(lambda (shrf) (plump:attribute shrf "r:id")) sheet-refs)))
-      (mapcar #'(lambda (id)
-		  (let* ((rel (opc:get-relationship wb id))
+	   (ids-and-names (mapcar #'(lambda (shrf) (cons (plump:attribute shrf "r:id")
+							 (plump:attribute shrf "name")))
+				  sheet-refs)))
+      (mapcar #'(lambda (id-and-name)
+		  (let* ((id (car id-and-name))
+			 (name (cdr id-and-name))
+			 (rel (opc:get-relationship wb id))
 			 (target-uri (opc:target-uri rel))
 			 (source-uri (opc:source-uri rel))
-			 (abs-uri (opc:uri-merge source-uri target-uri)))
-		    (docxplora:get-part-by-name document abs-uri :xml t :class 'worksheet)))
-	      ids))))
+			 (abs-uri (opc:uri-merge source-uri target-uri))
+			 (ws (docxplora:get-part-by-name document abs-uri :xml t :class 'worksheet)))
+		    (setf (worksheet-workbook ws) wb
+			  (worksheet-name ws) name)
+		    ws))
+	      ids-and-names))))
 
 (defgeneric get-worksheet-by-name (target name)
   (:method ((document sml-document) (name string))
@@ -70,6 +82,8 @@
 				"name" name
 				"sheetId" (princ-to-string sheet-id)
 				"r:id" (opc:relationship-id reln)))
+	  (setf (worksheet-workbook part) wb
+		(worksheet-name part) name)
 	  part)))))
 
 

@@ -22,7 +22,7 @@
     (opc:delete-part (docxplora:opc-package document) "/xl/calcChain.xml")
     we))
 
-(defgeneric edit-worksheet (workbook-editor name)
+(defgeneric edit-worksheet (workbook-editor worksheet)
   (:method ((we workbook-editor) (name string))
     (let* ((worksheet (get-worksheet-by-name (workbook-editor-document we) name))
 	   (sheet (make-instance 'ww-sheet :workbook-writer we

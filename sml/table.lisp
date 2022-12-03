@@ -52,3 +52,21 @@
 	(make-element/attrs ws-tables "tablePart"
 			    "r:id" (opc:relationship-id reln)))
       part)))
+
+(defun table-name (table-part)
+  (let* ((root (opc:xml-root table-part))
+	 (table-element (find-child/tag root "table")))
+    (plump:attribute table-element "name")))
+
+(defgeneric find-table-by-name (target name)
+  (:method ((worksheet worksheet) (name string))
+    (find name (tables worksheet) :key #'table-name :test #'string-equal)) ; FIXME names are case insensitive?
+  (:method ((document sml-document) (name string))
+    (loop for ws in (worksheets document)
+	  for table = (find-table-by-name ws name)
+	  when table
+	    return (values table ws)
+	  finally (return (values nil nil)))))
+
+
+	   
