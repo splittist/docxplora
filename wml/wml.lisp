@@ -376,14 +376,6 @@
      :test #'plump:element-p)
     (nreverse result)))
 
-(defun tables-in-document-order (node)
-  (let ((result '()))
-    (plump:traverse
-     node
-     #'(lambda (node) (when (tagp node "w:tbl") (push node result)))
-     :test #'plump:element-p)
-    (nreverse result)))
-
 (defun child-at-index (node index)
   (assert (<= 0 index (text-length node)))
   (loop with i = 0

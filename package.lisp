@@ -74,6 +74,8 @@
 (defpackage #:docxplora
   (:use #:cl #:plump-utils)
   (:export
+
+   ;; documents
    #:document
    #:opc-package
    #:open-document
@@ -83,6 +85,7 @@
    #:get-part-by-name
    #:main-document
 
+   ;; parts
    #:comments
    #:document-settings
    #:endnotes
@@ -99,21 +102,34 @@
 
    #:add-main-document
 
+   ;; paragraphs
    #:paragraphs-in-document-order
-   
+
+   ;; tables
+   #:tables-in-document-order
+   #:table-rows
+   #:table-row-cells
+   #:table-all-cells
+   #:do-rows
+
+   ;; images
    #:make-inline-image
 
+   ;; styles
    #:add-style-definitions
    #:add-style
    #:remove-style
    #:find-style-by-id
-   
+
+   ;; hyperlinks
    #:ensure-hyperlink
 
+   ;; numbering
    #:add-numbering-definitions
    #:ensure-numbering-definitions
    #:make-numbering-start-override
 
+   ;; comments
    #:get-comment-by-id
    #:comment-id
    #:comment-author
@@ -121,23 +137,27 @@
    #:comment-date
    #:comments-in-document-order
 
+   ;; sections
    #:sections
    #:paragraph-section
-   
+
+   ;; footnotes
    #:get-footnote-by-id
    #:footnote-references-in-document-order
    #:footnotes-in-document-order
    #:footnote-reference-paragraph
    #:footnote-reference-section
    #:footnote-references-numbering
-   
+
+   ;; endnotes
    #:get-endnote-by-id
    #:endnote-references-in-document-order
    #:endnotes-in-document-order
    #:endnote-reference-paragraph
    #:endnote-reference-section
    #:endnote-references-numbering
-   
+
+   ;; utils
    #:find-child/tag
    #:find-children/tag
    #:find-child/tag/val
